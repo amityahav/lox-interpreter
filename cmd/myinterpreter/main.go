@@ -60,7 +60,7 @@ func main() {
 	for lineNum, line := range lines {
 	LOOP:
 		for i := 0; i < len(line); i++ {
-			switch fileContents[i] {
+			switch line[i] {
 			case LEFT_PAREN:
 				fmt.Printf("LEFT_PAREN ( null\n")
 			case RIGHT_PAREN:
