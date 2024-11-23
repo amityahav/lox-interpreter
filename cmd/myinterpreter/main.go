@@ -70,6 +70,7 @@ func main() {
 		case EQUAL:
 			if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
 				fmt.Printf("EQUAL_EQUAL == null\n")
+				i += 1
 				continue
 			}
 
