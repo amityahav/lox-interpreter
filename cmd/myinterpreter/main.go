@@ -12,7 +12,7 @@ const (
 	RIGHT_BRACE byte = '}'
 	COMMA       byte = ','
 	DOT         byte = '.'
-	SEMI_COLON  byte = ';'
+	SEMICOLON   byte = ';'
 	PLUS        byte = '+'
 	MINUS       byte = '-'
 	STAR        byte = '*'
@@ -55,8 +55,8 @@ func main() {
 			fmt.Printf("COMMA , null\n")
 		case DOT:
 			fmt.Printf("DOT . null\n")
-		case SEMI_COLON:
-			fmt.Printf("SEMI_COLON ; null\n")
+		case SEMICOLON:
+			fmt.Printf("SEMICOLON ; null\n")
 		case PLUS:
 			fmt.Printf("PLUS + null\n")
 		case MINUS:
