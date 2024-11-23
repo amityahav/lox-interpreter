@@ -177,7 +177,7 @@ func (s *Scanner) Scan() {
 						Literal: "null",
 					}
 
-					i += 1
+					i++
 					continue
 				}
 
@@ -192,7 +192,7 @@ func (s *Scanner) Scan() {
 						Literal: "null",
 					}
 
-					i += 1
+					i++
 					continue
 				}
 
@@ -207,7 +207,7 @@ func (s *Scanner) Scan() {
 						Literal: "null",
 					}
 
-					i += 1
+					i++
 					continue
 				}
 
@@ -222,7 +222,7 @@ func (s *Scanner) Scan() {
 						Literal: "null",
 					}
 
-					i += 1
+					i++
 					continue
 				}
 
@@ -264,5 +264,8 @@ func (s *Scanner) nextLine() (int, string, bool) {
 		return 0, "", false
 	}
 
-	return s.currLine, s.lines[s.currLine], true
+	c := s.currLine
+	s.currLine++
+
+	return c, s.lines[c], true
 }
