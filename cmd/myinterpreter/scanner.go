@@ -315,7 +315,7 @@ func (s *Scanner) Scan() {
 
 	if stringStarted {
 		// if we found an unterminated string
-		_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unterminated string.", currToken.Line)
+		_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unterminated string.", currToken.Line+1)
 	}
 
 	fmt.Println((&Token{
