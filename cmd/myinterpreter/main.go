@@ -79,7 +79,7 @@ func main() {
 			fmt.Printf("EQUAL = null\n")
 		case BANG:
 			if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
-				fmt.Printf("BANG EQUAL != null\n")
+				fmt.Printf("BANG_EQUAL != null\n")
 				i += 1
 				continue
 			}
