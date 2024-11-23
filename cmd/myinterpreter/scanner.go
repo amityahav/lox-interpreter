@@ -290,6 +290,7 @@ func (s *Scanner) Scan() {
 					Line:    lineNum,
 				}
 			case SPACE, TAB:
+				continue
 			case QUOTE:
 				if !stringStarted {
 					stringStarted = true
