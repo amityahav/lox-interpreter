@@ -66,7 +66,7 @@ func main() {
 		case STAR:
 			fmt.Printf("STAR * null\n")
 		default:
-			_, _ = fmt.Fprintf(os.Stderr, "[Line N] Error: Unexpected character: %s\n", string(char))
+			_, _ = fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", string(char))
 			lexErrFound = true
 		}
 	}
