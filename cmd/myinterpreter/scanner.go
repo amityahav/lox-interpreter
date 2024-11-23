@@ -31,7 +31,9 @@ const (
 	NEWLINE       TokenType = "\n"
 	SPACE         TokenType = " "
 	TAB           TokenType = "\t"
-	EOF           TokenType = ""
+	STRING        TokenType = "<placeholder>"
+	QUOTE         TokenType = "\""
+	EOF           TokenType = "eof"
 )
 
 func (t TokenType) Type() string {
@@ -74,6 +76,8 @@ func (t TokenType) Type() string {
 		return "NEWLINE"
 	case SPACE:
 		return "SPACE"
+	case STRING:
+		return "STRING"
 	case TAB:
 		return "TAB"
 	case EOF:
@@ -85,11 +89,13 @@ func (t TokenType) Type() string {
 
 type Token struct {
 	Type    TokenType
+	Lexeme  string
 	Literal string
+	Line    int
 }
 
 func (t *Token) String() string {
-	return fmt.Sprintf("%s %s %s", t.Type.Type(), t.Type, t.Literal)
+	return fmt.Sprintf("%s %s %s", t.Type.Type(), t.Lexeme, t.Literal)
 }
 
 type Scanner struct {
@@ -107,8 +113,9 @@ func NewScanner(content []byte) *Scanner {
 
 func (s *Scanner) Scan() {
 	var (
-		lexErrFound bool
-		currToken   Token
+		lexErrFound   bool
+		stringStarted bool
+		currToken     Token
 	)
 
 	for {
@@ -119,62 +126,89 @@ func (s *Scanner) Scan() {
 
 	LOOP:
 		for i := 0; i < len(line); i++ {
+			if stringStarted && TokenType(line[i]) != QUOTE {
+				currToken.Literal += string(line[i])
+				continue
+			}
+
 			switch TokenType(line[i]) {
 			case LEFT_PAREN:
 				currToken = Token{
 					Type:    LEFT_PAREN,
+					Lexeme:  string(LEFT_PAREN),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case RIGHT_PAREN:
 				currToken = Token{
 					Type:    RIGHT_PAREN,
+					Lexeme:  string(RIGHT_PAREN),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case LEFT_BRACE:
 				currToken = Token{
 					Type:    LEFT_BRACE,
+					Lexeme:  string(LEFT_BRACE),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case RIGHT_BRACE:
 				currToken = Token{
 					Type:    RIGHT_BRACE,
+					Lexeme:  string(RIGHT_BRACE),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case COMMA:
 				currToken = Token{
 					Type:    COMMA,
+					Lexeme:  string(COMMA),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case DOT:
 				currToken = Token{
 					Type:    DOT,
+					Lexeme:  string(DOT),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case SEMICOLON:
 				currToken = Token{
 					Type:    SEMICOLON,
+					Lexeme:  string(SEMICOLON),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case PLUS:
 				currToken = Token{
 					Type:    PLUS,
+					Lexeme:  string(PLUS),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case MINUS:
 				currToken = Token{
 					Type:    MINUS,
+					Lexeme:  string(MINUS),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case STAR:
 				currToken = Token{
 					Type:    STAR,
+					Lexeme:  string(STAR),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case EQUAL:
 				if i+1 < len(line) && TokenType(line[i+1]) == EQUAL {
 					currToken = Token{
 						Type:    EQUAL_EQUAL,
+						Lexeme:  string(EQUAL_EQUAL),
 						Literal: "null",
+						Line:    lineNum,
 					}
 
 					i++
@@ -183,13 +217,17 @@ func (s *Scanner) Scan() {
 
 				currToken = Token{
 					Type:    EQUAL,
+					Lexeme:  string(EQUAL),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case BANG:
 				if i+1 < len(line) && TokenType(line[i+1]) == EQUAL {
 					currToken = Token{
 						Type:    BANG_EQUAL,
+						Lexeme:  string(BANG_EQUAL),
 						Literal: "null",
+						Line:    lineNum,
 					}
 
 					i++
@@ -198,13 +236,17 @@ func (s *Scanner) Scan() {
 
 				currToken = Token{
 					Type:    BANG,
+					Lexeme:  string(BANG),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case LESS:
 				if i+1 < len(line) && TokenType(line[i+1]) == EQUAL {
 					currToken = Token{
 						Type:    LESS_EQUAL,
+						Lexeme:  string(LESS_EQUAL),
 						Literal: "null",
+						Line:    lineNum,
 					}
 
 					i++
@@ -213,13 +255,17 @@ func (s *Scanner) Scan() {
 
 				currToken = Token{
 					Type:    LESS,
+					Lexeme:  string(LESS),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case GREATER:
 				if i+1 < len(line) && TokenType(line[i+1]) == EQUAL {
 					currToken = Token{
 						Type:    GREATER_EQUAL,
+						Lexeme:  string(GREATER_EQUAL),
 						Literal: "null",
+						Line:    lineNum,
 					}
 
 					i++
@@ -228,7 +274,9 @@ func (s *Scanner) Scan() {
 
 				currToken = Token{
 					Type:    GREATER,
+					Lexeme:  string(GREATER),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case SLASH:
 				if i+1 < len(line) && TokenType(line[i+1]) == SLASH {
@@ -237,9 +285,25 @@ func (s *Scanner) Scan() {
 
 				currToken = Token{
 					Type:    SLASH,
+					Lexeme:  string(SLASH),
 					Literal: "null",
+					Line:    lineNum,
 				}
 			case SPACE, TAB:
+			case QUOTE:
+				if stringStarted {
+					// we found the matching quote.
+					stringStarted = false
+					currToken.Lexeme = fmt.Sprintf("\"%s\"", currToken.Literal)
+					continue
+				}
+
+				stringStarted = true
+				currToken = Token{
+					Type: STRING,
+					Line: lineNum,
+				}
+
 			default:
 				_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNum+1, string(line[i]))
 				lexErrFound = true
@@ -249,8 +313,14 @@ func (s *Scanner) Scan() {
 		}
 	}
 
+	if stringStarted {
+		// if we found an unterminated string
+		_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unterminated string.", currToken.Line)
+	}
+
 	fmt.Println((&Token{
 		Type:    EOF,
+		Lexeme:  string(EOF),
 		Literal: "null",
 	}).String())
 
