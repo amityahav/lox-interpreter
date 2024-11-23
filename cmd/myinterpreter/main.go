@@ -25,7 +25,6 @@ const (
 	GREATER       byte   = '>'
 	GREATER_EQUAL string = ">="
 	SLASH         byte   = '/'
-	COMMENT       string = "//"
 )
 
 func main() {
@@ -109,8 +108,7 @@ func main() {
 			fmt.Printf("GREATER > null\n")
 		case SLASH:
 			if i+1 < len(fileContents) && fileContents[i+1] == SLASH {
-				i += 1
-				continue
+				break
 			}
 
 			fmt.Printf("SLASH / null\n")
