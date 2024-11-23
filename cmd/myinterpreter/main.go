@@ -24,6 +24,8 @@ const (
 	LESS_EQUAL    string = "<="
 	GREATER       byte   = '>'
 	GREATER_EQUAL string = ">="
+	SLASH         byte   = '/'
+	COMMENT       string = "//"
 )
 
 func main() {
@@ -105,6 +107,13 @@ func main() {
 			}
 
 			fmt.Printf("GREATER > null\n")
+		case SLASH:
+			if i+1 < len(fileContents) && fileContents[i+1] == SLASH {
+				i += 1
+				continue
+			}
+
+			fmt.Printf("SLASH / null\n")
 		default:
 			_, _ = fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", string(fileContents[i]))
 			lexErrFound = true
