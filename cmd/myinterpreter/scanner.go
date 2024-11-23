@@ -151,6 +151,16 @@ func (s *Scanner) Scan() {
 				currToken.Literal = currToken.Lexeme
 				if !strings.Contains(currToken.Literal, ".") {
 					currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal)
+				} else {
+					idx := strings.Index(currToken.Literal, ".")
+					d, err := strconv.Atoi(currToken.Literal[idx+1:])
+					if err != nil {
+						panic(err)
+					}
+
+					if d == 0 {
+						currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal[:idx])
+					}
 				}
 
 				fmt.Println(currToken.String())
@@ -356,6 +366,16 @@ func (s *Scanner) Scan() {
 		currToken.Literal = currToken.Lexeme
 		if !strings.Contains(currToken.Literal, ".") {
 			currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal)
+		} else {
+			idx := strings.Index(currToken.Literal, ".")
+			d, err := strconv.Atoi(currToken.Literal[idx+1:])
+			if err != nil {
+				panic(err)
+			}
+
+			if d == 0 {
+				currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal[:idx])
+			}
 		}
 
 		fmt.Println(currToken.String())
