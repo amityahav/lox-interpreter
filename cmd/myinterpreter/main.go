@@ -6,16 +6,18 @@ import (
 )
 
 const (
-	LEFT_PAREN  byte = '('
-	RIGHT_PAREN byte = ')'
-	LEFT_BRACE  byte = '{'
-	RIGHT_BRACE byte = '}'
-	COMMA       byte = ','
-	DOT         byte = '.'
-	SEMICOLON   byte = ';'
-	PLUS        byte = '+'
-	MINUS       byte = '-'
-	STAR        byte = '*'
+	LEFT_PAREN  byte   = '('
+	RIGHT_PAREN byte   = ')'
+	LEFT_BRACE  byte   = '{'
+	RIGHT_BRACE byte   = '}'
+	COMMA       byte   = ','
+	DOT         byte   = '.'
+	SEMICOLON   byte   = ';'
+	PLUS        byte   = '+'
+	MINUS       byte   = '-'
+	STAR        byte   = '*'
+	EQUAL       byte   = '='
+	EQUAL_EQUAL string = "=="
 )
 
 func main() {
@@ -43,8 +45,8 @@ func main() {
 
 	var lexErrFound bool
 
-	for _, char := range fileContents {
-		switch char {
+	for i := range fileContents {
+		switch fileContents[i] {
 		case LEFT_PAREN:
 			fmt.Printf("LEFT_PAREN ( null\n")
 		case RIGHT_PAREN:
@@ -65,8 +67,15 @@ func main() {
 			fmt.Printf("MINUS - null\n")
 		case STAR:
 			fmt.Printf("STAR * null\n")
+		case EQUAL:
+			if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
+				fmt.Printf("EQUAL_EQUAL == null\n")
+				continue
+			}
+
+			fmt.Printf("EQUAL = null\n")
 		default:
-			_, _ = fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", string(char))
+			_, _ = fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", string(fileContents[i]))
 			lexErrFound = true
 		}
 	}
