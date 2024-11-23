@@ -15,6 +15,7 @@ const (
 	SEMI_COLON  byte = ';'
 	PLUS        byte = '+'
 	MINUS       byte = '-'
+	STAR        byte = '*'
 )
 
 func main() {
@@ -60,7 +61,8 @@ func main() {
 			fmt.Printf("PLUS + null\n")
 		case MINUS:
 			fmt.Printf("MINUS - null\n")
-
+		case STAR:
+			fmt.Printf("STAR * null\n")
 		}
 	}
 
