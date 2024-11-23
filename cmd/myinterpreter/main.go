@@ -25,6 +25,9 @@ const (
 	GREATER       byte   = '>'
 	GREATER_EQUAL string = ">="
 	SLASH         byte   = '/'
+	NEWLINE       byte   = '\n'
+	SPACE         byte   = ' '
+	TAB           byte   = '\t'
 )
 
 func main() {
@@ -113,6 +116,8 @@ LOOP:
 			}
 
 			fmt.Printf("SLASH / null\n")
+		case NEWLINE, SPACE, TAB:
+			continue
 		default:
 			_, _ = fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", string(fileContents[i]))
 			lexErrFound = true
