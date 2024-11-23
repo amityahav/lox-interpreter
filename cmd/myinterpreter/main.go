@@ -8,9 +8,13 @@ import (
 const (
 	LEFT_PAREN  byte = '('
 	RIGHT_PAREN byte = ')'
-
 	LEFT_BRACE  byte = '{'
 	RIGHT_BRACE byte = '}'
+	COMMA       byte = ','
+	DOT         byte = '.'
+	SEMI_COLON  byte = ';'
+	PLUS        byte = '+'
+	MINUS       byte = '-'
 )
 
 func main() {
@@ -46,6 +50,17 @@ func main() {
 			fmt.Printf("LEFT_BRACE { null\n")
 		case RIGHT_BRACE:
 			fmt.Printf("RIGHT_BRACE } null\n")
+		case COMMA:
+			fmt.Printf("COMMA , null\n")
+		case DOT:
+			fmt.Printf("DOT . null\n")
+		case SEMI_COLON:
+			fmt.Printf("SEMI_COLON ; null\n")
+		case PLUS:
+			fmt.Printf("PLUS + null\n")
+		case MINUS:
+			fmt.Printf("MINUS - null\n")
+
 		}
 	}
 
