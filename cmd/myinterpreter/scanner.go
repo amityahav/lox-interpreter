@@ -33,7 +33,7 @@ const (
 	TAB           TokenType = "\t"
 	STRING        TokenType = "<placeholder>"
 	QUOTE         TokenType = "\""
-	EOF           TokenType = "eof"
+	EOF           TokenType = ""
 )
 
 func (t TokenType) Type() string {
@@ -212,7 +212,7 @@ func (s *Scanner) Scan() {
 					}
 
 					i++
-					continue
+					break
 				}
 
 				currToken = Token{
@@ -231,7 +231,7 @@ func (s *Scanner) Scan() {
 					}
 
 					i++
-					continue
+					break
 				}
 
 				currToken = Token{
@@ -250,7 +250,7 @@ func (s *Scanner) Scan() {
 					}
 
 					i++
-					continue
+					break
 				}
 
 				currToken = Token{
@@ -269,7 +269,7 @@ func (s *Scanner) Scan() {
 					}
 
 					i++
-					continue
+					break
 				}
 
 				currToken = Token{
@@ -291,19 +291,19 @@ func (s *Scanner) Scan() {
 				}
 			case SPACE, TAB:
 			case QUOTE:
-				if stringStarted {
-					// we found the matching quote.
-					stringStarted = false
-					currToken.Lexeme = fmt.Sprintf("\"%s\"", currToken.Literal)
+				if !stringStarted {
+					stringStarted = true
+					currToken = Token{
+						Type: STRING,
+						Line: lineNum,
+					}
+
 					continue
 				}
 
-				stringStarted = true
-				currToken = Token{
-					Type: STRING,
-					Line: lineNum,
-				}
-
+				// we found the matching quote.
+				stringStarted = false
+				currToken.Lexeme = fmt.Sprintf("\"%s\"", currToken.Literal)
 			default:
 				_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNum+1, string(line[i]))
 				lexErrFound = true
