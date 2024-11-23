@@ -45,7 +45,8 @@ func main() {
 
 	var lexErrFound bool
 
-	for i := range fileContents {
+	var i int
+	for i = range fileContents {
 		switch fileContents[i] {
 		case LEFT_PAREN:
 			fmt.Printf("LEFT_PAREN ( null\n")
