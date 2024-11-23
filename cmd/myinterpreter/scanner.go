@@ -352,6 +352,13 @@ func (s *Scanner) Scan() {
 	if stringStarted {
 		// if we found an unterminated string
 		_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unterminated string.", currToken.Line+1)
+	} else if numberStarted {
+		currToken.Literal = currToken.Lexeme
+		if !strings.Contains(currToken.Literal, ".") {
+			currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal)
+		}
+
+		fmt.Println(currToken.String())
 	}
 
 	fmt.Println((&Token{
