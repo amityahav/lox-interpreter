@@ -6,20 +6,24 @@ import (
 )
 
 const (
-	LEFT_PAREN  byte   = '('
-	RIGHT_PAREN byte   = ')'
-	LEFT_BRACE  byte   = '{'
-	RIGHT_BRACE byte   = '}'
-	COMMA       byte   = ','
-	DOT         byte   = '.'
-	SEMICOLON   byte   = ';'
-	PLUS        byte   = '+'
-	MINUS       byte   = '-'
-	STAR        byte   = '*'
-	EQUAL       byte   = '='
-	EQUAL_EQUAL string = "=="
-	BANG        byte   = '!'
-	BANG_EQUAL  string = "!="
+	LEFT_PAREN    byte   = '('
+	RIGHT_PAREN   byte   = ')'
+	LEFT_BRACE    byte   = '{'
+	RIGHT_BRACE   byte   = '}'
+	COMMA         byte   = ','
+	DOT           byte   = '.'
+	SEMICOLON     byte   = ';'
+	PLUS          byte   = '+'
+	MINUS         byte   = '-'
+	STAR          byte   = '*'
+	EQUAL         byte   = '='
+	EQUAL_EQUAL   string = "=="
+	BANG          byte   = '!'
+	BANG_EQUAL    string = "!="
+	LESS          byte   = '<'
+	LESS_EQUAL    string = "<="
+	GREATER       byte   = '>'
+	GREATER_EQUAL string = ">="
 )
 
 func main() {
@@ -79,12 +83,28 @@ func main() {
 			fmt.Printf("EQUAL = null\n")
 		case BANG:
 			if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
-				fmt.Printf("BANG_EQUAL != null\n")
+				fmt.Printf("BANGEQUAL != null\n")
 				i += 1
 				continue
 			}
 
 			fmt.Printf("BANG ! null\n")
+		case LESS:
+			if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
+				fmt.Printf("LESS_EQUAL <= null\n")
+				i += 1
+				continue
+			}
+
+			fmt.Printf("LESS < null\n")
+		case GREATER:
+			if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
+				fmt.Printf("GREATER_EQUAL >= null\n")
+				i += 1
+				continue
+			}
+
+			fmt.Printf("GREATER > null\n")
 		default:
 			_, _ = fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", string(fileContents[i]))
 			lexErrFound = true
