@@ -53,7 +53,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	var lexErrFound bool
+	var (
+		lexErrFound bool
+		line        = 1
+	)
 
 LOOP:
 	for i := 0; i < len(fileContents); i++ {
@@ -116,10 +119,11 @@ LOOP:
 			}
 
 			fmt.Printf("SLASH / null\n")
-		case NEWLINE, SPACE, TAB:
-			continue
+		case NEWLINE:
+			line += 1
+		case SPACE, TAB:
 		default:
-			_, _ = fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", string(fileContents[i]))
+			_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", line, string(fileContents[i]))
 			lexErrFound = true
 		}
 	}
