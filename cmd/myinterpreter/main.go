@@ -52,6 +52,7 @@ func main() {
 
 	var lexErrFound bool
 
+LOOP:
 	for i := 0; i < len(fileContents); i++ {
 		switch fileContents[i] {
 		case LEFT_PAREN:
@@ -108,7 +109,7 @@ func main() {
 			fmt.Printf("GREATER > null\n")
 		case SLASH:
 			if i+1 < len(fileContents) && fileContents[i+1] == SLASH {
-				break
+				break LOOP
 			}
 
 			fmt.Printf("SLASH / null\n")
