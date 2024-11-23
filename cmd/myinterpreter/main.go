@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 )
@@ -53,78 +54,77 @@ func main() {
 		os.Exit(1)
 	}
 
-	var (
-		lexErrFound bool
-		line        = 1
-	)
+	var lexErrFound bool
 
-LOOP:
-	for i := 0; i < len(fileContents); i++ {
-		switch fileContents[i] {
-		case LEFT_PAREN:
-			fmt.Printf("LEFT_PAREN ( null\n")
-		case RIGHT_PAREN:
-			fmt.Printf("RIGHT_PAREN ) null\n")
-		case LEFT_BRACE:
-			fmt.Printf("LEFT_BRACE { null\n")
-		case RIGHT_BRACE:
-			fmt.Printf("RIGHT_BRACE } null\n")
-		case COMMA:
-			fmt.Printf("COMMA , null\n")
-		case DOT:
-			fmt.Printf("DOT . null\n")
-		case SEMICOLON:
-			fmt.Printf("SEMICOLON ; null\n")
-		case PLUS:
-			fmt.Printf("PLUS + null\n")
-		case MINUS:
-			fmt.Printf("MINUS - null\n")
-		case STAR:
-			fmt.Printf("STAR * null\n")
-		case EQUAL:
-			if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
-				fmt.Printf("EQUAL_EQUAL == null\n")
-				i += 1
-				continue
+	lines := bytes.Split(fileContents, []byte{NEWLINE})
+
+	for lineNum, line := range lines {
+	LOOP:
+		for i := 0; i < len(line); i++ {
+			switch fileContents[i] {
+			case LEFT_PAREN:
+				fmt.Printf("LEFT_PAREN ( null\n")
+			case RIGHT_PAREN:
+				fmt.Printf("RIGHT_PAREN ) null\n")
+			case LEFT_BRACE:
+				fmt.Printf("LEFT_BRACE { null\n")
+			case RIGHT_BRACE:
+				fmt.Printf("RIGHT_BRACE } null\n")
+			case COMMA:
+				fmt.Printf("COMMA , null\n")
+			case DOT:
+				fmt.Printf("DOT . null\n")
+			case SEMICOLON:
+				fmt.Printf("SEMICOLON ; null\n")
+			case PLUS:
+				fmt.Printf("PLUS + null\n")
+			case MINUS:
+				fmt.Printf("MINUS - null\n")
+			case STAR:
+				fmt.Printf("STAR * null\n")
+			case EQUAL:
+				if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
+					fmt.Printf("EQUAL_EQUAL == null\n")
+					i += 1
+					continue
+				}
+
+				fmt.Printf("EQUAL = null\n")
+			case BANG:
+				if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
+					fmt.Printf("BANG_EQUAL != null\n")
+					i += 1
+					continue
+				}
+
+				fmt.Printf("BANG ! null\n")
+			case LESS:
+				if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
+					fmt.Printf("LESS_EQUAL <= null\n")
+					i += 1
+					continue
+				}
+
+				fmt.Printf("LESS < null\n")
+			case GREATER:
+				if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
+					fmt.Printf("GREATER_EQUAL >= null\n")
+					i += 1
+					continue
+				}
+
+				fmt.Printf("GREATER > null\n")
+			case SLASH:
+				if i+1 < len(fileContents) && fileContents[i+1] == SLASH {
+					break LOOP
+				}
+
+				fmt.Printf("SLASH / null\n")
+			case SPACE, TAB:
+			default:
+				_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNum+1, string(fileContents[i]))
+				lexErrFound = true
 			}
-
-			fmt.Printf("EQUAL = null\n")
-		case BANG:
-			if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
-				fmt.Printf("BANG_EQUAL != null\n")
-				i += 1
-				continue
-			}
-
-			fmt.Printf("BANG ! null\n")
-		case LESS:
-			if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
-				fmt.Printf("LESS_EQUAL <= null\n")
-				i += 1
-				continue
-			}
-
-			fmt.Printf("LESS < null\n")
-		case GREATER:
-			if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
-				fmt.Printf("GREATER_EQUAL >= null\n")
-				i += 1
-				continue
-			}
-
-			fmt.Printf("GREATER > null\n")
-		case SLASH:
-			if i+1 < len(fileContents) && fileContents[i+1] == SLASH {
-				break LOOP
-			}
-
-			fmt.Printf("SLASH / null\n")
-		case NEWLINE:
-			line += 1
-		case SPACE, TAB:
-		default:
-			_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", line, string(fileContents[i]))
-			lexErrFound = true
 		}
 	}
 
