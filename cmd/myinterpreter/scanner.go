@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -31,7 +32,8 @@ const (
 	NEWLINE       TokenType = "\n"
 	SPACE         TokenType = " "
 	TAB           TokenType = "\t"
-	STRING        TokenType = "<placeholder>"
+	STRING        TokenType = "<placeholder_str>"
+	NUMBER        TokenType = "<placeholder_num>"
 	QUOTE         TokenType = "\""
 	EOF           TokenType = ""
 )
@@ -82,6 +84,8 @@ func (t TokenType) Type() string {
 		return "SPACE"
 	case STRING:
 		return "STRING"
+	case NUMBER:
+		return "NUMBER"
 	case TAB:
 		return "TAB"
 	case EOF:
@@ -119,6 +123,7 @@ func (s *Scanner) Scan() {
 	var (
 		lexErrFound   bool
 		stringStarted bool
+		numberStarted bool
 		currToken     Token
 	)
 
@@ -133,6 +138,22 @@ func (s *Scanner) Scan() {
 			if stringStarted && TokenType(line[i]) != QUOTE {
 				currToken.Literal += string(line[i])
 				continue
+			}
+
+			if numberStarted {
+				if strings.Contains("0123456789.", string(line[i])) {
+					currToken.Lexeme += string(line[i])
+					continue
+				}
+
+				numberStarted = false
+
+				currToken.Literal = currToken.Lexeme
+				if !strings.Contains(currToken.Literal, ".") {
+					currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal)
+				}
+
+				fmt.Println(currToken.String())
 			}
 
 			switch TokenType(line[i]) {
@@ -309,6 +330,15 @@ func (s *Scanner) Scan() {
 				// we found the matching quote.
 				stringStarted = false
 				currToken.Lexeme = fmt.Sprintf("\"%s\"", currToken.Literal)
+			case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
+				numberStarted = true
+				currToken = Token{
+					Type:   NUMBER,
+					Lexeme: strconv.Itoa(int(line[i])),
+					Line:   lineNum,
+				}
+
+				continue
 			default:
 				_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNum+1, string(line[i]))
 				lexErrFound = true
