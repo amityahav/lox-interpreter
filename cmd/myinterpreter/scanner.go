@@ -308,6 +308,7 @@ func (s *Scanner) Scan() {
 			default:
 				_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNum+1, string(line[i]))
 				lexErrFound = true
+				continue
 			}
 
 			fmt.Println(currToken.String())
