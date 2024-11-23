@@ -334,7 +334,7 @@ func (s *Scanner) Scan() {
 				numberStarted = true
 				currToken = Token{
 					Type:   NUMBER,
-					Lexeme: strconv.Itoa(int(line[i])),
+					Lexeme: strconv.Itoa(int(line[i] - '0')),
 					Line:   lineNum,
 				}
 
