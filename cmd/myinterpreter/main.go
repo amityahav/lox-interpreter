@@ -55,7 +55,6 @@ func main() {
 	}
 
 	var lexErrFound bool
-
 	lines := bytes.Split(fileContents, []byte{NEWLINE})
 
 	for lineNum, line := range lines {
@@ -83,7 +82,7 @@ func main() {
 			case STAR:
 				fmt.Printf("STAR * null\n")
 			case EQUAL:
-				if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
+				if i+1 < len(line) && line[i+1] == EQUAL {
 					fmt.Printf("EQUAL_EQUAL == null\n")
 					i += 1
 					continue
@@ -91,7 +90,7 @@ func main() {
 
 				fmt.Printf("EQUAL = null\n")
 			case BANG:
-				if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
+				if i+1 < len(line) && line[i+1] == EQUAL {
 					fmt.Printf("BANG_EQUAL != null\n")
 					i += 1
 					continue
@@ -99,7 +98,7 @@ func main() {
 
 				fmt.Printf("BANG ! null\n")
 			case LESS:
-				if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
+				if i+1 < len(line) && line[i+1] == EQUAL {
 					fmt.Printf("LESS_EQUAL <= null\n")
 					i += 1
 					continue
@@ -107,7 +106,7 @@ func main() {
 
 				fmt.Printf("LESS < null\n")
 			case GREATER:
-				if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
+				if i+1 < len(line) && line[i+1] == EQUAL {
 					fmt.Printf("GREATER_EQUAL >= null\n")
 					i += 1
 					continue
@@ -115,14 +114,14 @@ func main() {
 
 				fmt.Printf("GREATER > null\n")
 			case SLASH:
-				if i+1 < len(fileContents) && fileContents[i+1] == SLASH {
+				if i+1 < len(line) && line[i+1] == SLASH {
 					break LOOP
 				}
 
 				fmt.Printf("SLASH / null\n")
 			case SPACE, TAB:
 			default:
-				_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNum+1, string(fileContents[i]))
+				_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNum+1, string(line[i]))
 				lexErrFound = true
 			}
 		}
