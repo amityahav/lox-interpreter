@@ -41,6 +41,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	var lexErrFound bool
+
 	for _, char := range fileContents {
 		switch char {
 		case LEFT_PAREN:
@@ -63,8 +65,15 @@ func main() {
 			fmt.Printf("MINUS - null\n")
 		case STAR:
 			fmt.Printf("STAR * null\n")
+		default:
+			_, _ = fmt.Fprintf(os.Stderr, "[Line 1] Error: Unexpected character: %s\n", string(char))
+			lexErrFound = true
 		}
 	}
 
 	fmt.Println("EOF  null")
+
+	if lexErrFound {
+		os.Exit(65)
+	}
 }
