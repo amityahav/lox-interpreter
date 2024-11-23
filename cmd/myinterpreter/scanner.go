@@ -54,6 +54,8 @@ func (t TokenType) Type() string {
 		return "MINUS"
 	case DOT:
 		return "DOT"
+	case SEMICOLON:
+		return "SEMICOLON"
 	case STAR:
 		return "STAR"
 	case EQUAL:
