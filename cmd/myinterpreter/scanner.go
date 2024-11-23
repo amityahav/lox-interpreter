@@ -324,7 +324,7 @@ func (s *Scanner) Scan() {
 		Literal: "null",
 	}).String())
 
-	if lexErrFound {
+	if lexErrFound || stringStarted {
 		os.Exit(65)
 	}
 }
