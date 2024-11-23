@@ -18,6 +18,8 @@ const (
 	STAR        byte   = '*'
 	EQUAL       byte   = '='
 	EQUAL_EQUAL string = "=="
+	BANG        byte   = '!'
+	BANG_EQUAL  string = "!="
 )
 
 func main() {
@@ -75,6 +77,14 @@ func main() {
 			}
 
 			fmt.Printf("EQUAL = null\n")
+		case BANG:
+			if i+1 < len(fileContents) && fileContents[i+1] == EQUAL {
+				fmt.Printf("BANG EQUAL != null\n")
+				i += 1
+				continue
+			}
+
+			fmt.Printf("BANG ! null\n")
 		default:
 			_, _ = fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", string(fileContents[i]))
 			lexErrFound = true
