@@ -8,6 +8,9 @@ import (
 const (
 	LEFT_PAREN  byte = '('
 	RIGHT_PAREN byte = ')'
+
+	LEFT_BRACE  byte = '{'
+	RIGHT_BRACE byte = '}'
 )
 
 func main() {
@@ -39,6 +42,10 @@ func main() {
 			fmt.Printf("LEFT_PAREN ( null\n")
 		case RIGHT_PAREN:
 			fmt.Printf("RIGHT_PAREN ) null\n")
+		case LEFT_BRACE:
+			fmt.Printf("LEFT_BRACE { null\n")
+		case RIGHT_BRACE:
+			fmt.Printf("RIGHT_BRACE } null\n")
 		}
 	}
 
