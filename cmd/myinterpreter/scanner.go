@@ -353,6 +353,9 @@ LOOP:
 				Literal: "null",
 				Line:    s.lineNum,
 			}
+
+			fmt.Println(currToken.String())
+			break LOOP
 		default:
 			_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", s.lineNum+1, currChar)
 			lexErrFound = true
