@@ -35,6 +35,7 @@ const (
 	STRING        TokenType = "<placeholder_str>"
 	NUMBER        TokenType = "<placeholder_num>"
 	QUOTE         TokenType = "\""
+	IDENTIFIER    TokenType = "<placeholder_identifier>"
 	EOF           TokenType = ""
 )
 
@@ -88,6 +89,8 @@ func (t TokenType) Type() string {
 		return "NUMBER"
 	case TAB:
 		return "TAB"
+	case IDENTIFIER:
+		return "IDENTIFIER"
 	case EOF:
 		return "EOF"
 	default:
@@ -128,84 +131,83 @@ LOOP:
 	for {
 		currChar, ok := s.nextChar()
 		if !ok {
-			currChar = string(EOF)
+			break
 		}
 
-		switch TokenType(currChar) {
-		case LEFT_PAREN:
+		if TokenType(currChar) == LEFT_PAREN {
 			currToken = Token{
 				Type:    LEFT_PAREN,
 				Lexeme:  string(LEFT_PAREN),
 				Literal: "null",
 				Line:    s.lineNum,
 			}
-		case RIGHT_PAREN:
+		} else if TokenType(currChar) == RIGHT_PAREN {
 			currToken = Token{
 				Type:    RIGHT_PAREN,
 				Lexeme:  string(RIGHT_PAREN),
 				Literal: "null",
 				Line:    s.lineNum,
 			}
-		case LEFT_BRACE:
+		} else if TokenType(currChar) == LEFT_BRACE {
 			currToken = Token{
 				Type:    LEFT_BRACE,
 				Lexeme:  string(LEFT_BRACE),
 				Literal: "null",
 				Line:    s.lineNum,
 			}
-		case RIGHT_BRACE:
+		} else if TokenType(currChar) == RIGHT_BRACE {
 			currToken = Token{
 				Type:    RIGHT_BRACE,
 				Lexeme:  string(RIGHT_BRACE),
 				Literal: "null",
 				Line:    s.lineNum,
 			}
-		case COMMA:
+		} else if TokenType(currChar) == COMMA {
 			currToken = Token{
 				Type:    COMMA,
 				Lexeme:  string(COMMA),
 				Literal: "null",
 				Line:    s.lineNum,
 			}
-		case DOT:
+		} else if TokenType(currChar) == DOT {
 			currToken = Token{
 				Type:    DOT,
 				Lexeme:  string(DOT),
 				Literal: "null",
 				Line:    s.lineNum,
 			}
-		case SEMICOLON:
+		} else if TokenType(currChar) == SEMICOLON {
 			currToken = Token{
 				Type:    SEMICOLON,
 				Lexeme:  string(SEMICOLON),
 				Literal: "null",
 				Line:    s.lineNum,
 			}
-		case PLUS:
+		} else if TokenType(currChar) == PLUS {
 			currToken = Token{
 				Type:    PLUS,
 				Lexeme:  string(PLUS),
 				Literal: "null",
 				Line:    s.lineNum,
 			}
-		case MINUS:
+		} else if TokenType(currChar) == MINUS {
 			currToken = Token{
 				Type:    MINUS,
 				Lexeme:  string(MINUS),
 				Literal: "null",
 				Line:    s.lineNum,
 			}
-		case STAR:
+		} else if TokenType(currChar) == STAR {
 			currToken = Token{
 				Type:    STAR,
 				Lexeme:  string(STAR),
 				Literal: "null",
 				Line:    s.lineNum,
 			}
-		case NEWLINE:
+		} else if TokenType(currChar) == NEWLINE {
 			s.lineNum++
 			continue
-		case EQUAL:
+		} else if TokenType(currChar) == EQUAL {
 			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == EQUAL {
 				currToken = Token{
 					Type:    EQUAL_EQUAL,
@@ -215,16 +217,15 @@ LOOP:
 				}
 
 				s.nextChar()
-				break
+			} else {
+				currToken = Token{
+					Type:    EQUAL,
+					Lexeme:  string(EQUAL),
+					Literal: "null",
+					Line:    s.lineNum,
+				}
 			}
-
-			currToken = Token{
-				Type:    EQUAL,
-				Lexeme:  string(EQUAL),
-				Literal: "null",
-				Line:    s.lineNum,
-			}
-		case BANG:
+		} else if TokenType(currChar) == BANG {
 			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == EQUAL {
 				currToken = Token{
 					Type:    BANG_EQUAL,
@@ -234,16 +235,15 @@ LOOP:
 				}
 
 				s.nextChar()
-				break
+			} else {
+				currToken = Token{
+					Type:    BANG,
+					Lexeme:  string(BANG),
+					Literal: "null",
+					Line:    s.lineNum,
+				}
 			}
-
-			currToken = Token{
-				Type:    BANG,
-				Lexeme:  string(BANG),
-				Literal: "null",
-				Line:    s.lineNum,
-			}
-		case LESS:
+		} else if TokenType(currChar) == LESS {
 			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == EQUAL {
 				currToken = Token{
 					Type:    LESS_EQUAL,
@@ -253,16 +253,15 @@ LOOP:
 				}
 
 				s.nextChar()
-				break
+			} else {
+				currToken = Token{
+					Type:    LESS,
+					Lexeme:  string(LESS),
+					Literal: "null",
+					Line:    s.lineNum,
+				}
 			}
-
-			currToken = Token{
-				Type:    LESS,
-				Lexeme:  string(LESS),
-				Literal: "null",
-				Line:    s.lineNum,
-			}
-		case GREATER:
+		} else if TokenType(currChar) == GREATER {
 			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == EQUAL {
 				currToken = Token{
 					Type:    GREATER_EQUAL,
@@ -272,16 +271,15 @@ LOOP:
 				}
 
 				s.nextChar()
-				break
+			} else {
+				currToken = Token{
+					Type:    GREATER,
+					Lexeme:  string(GREATER),
+					Literal: "null",
+					Line:    s.lineNum,
+				}
 			}
-
-			currToken = Token{
-				Type:    GREATER,
-				Lexeme:  string(GREATER),
-				Literal: "null",
-				Line:    s.lineNum,
-			}
-		case SLASH:
+		} else if TokenType(currChar) == SLASH {
 			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == SLASH {
 				// comment encountered
 				s.nextChar()
@@ -298,9 +296,11 @@ LOOP:
 				Literal: "null",
 				Line:    s.lineNum,
 			}
-		case SPACE, TAB:
+		} else if TokenType(currChar) == SPACE {
 			continue
-		case QUOTE:
+		} else if TokenType(currChar) == TAB {
+			continue
+		} else if TokenType(currChar) == QUOTE {
 			currToken = Token{
 				Type: STRING,
 				Line: s.lineNum,
@@ -316,20 +316,33 @@ LOOP:
 
 				if TokenType(n) == QUOTE {
 					currToken.Lexeme = fmt.Sprintf("\"%s\"", currToken.Literal)
+					s.nextChar()
 					break
 				}
 
-				currToken.Literal += n
+				res := string(n)
+				if isNumeric(n) {
+					res = strconv.Itoa(int(n))
+				}
+
+				currToken.Literal += res
+
+				s.nextChar()
 			}
-		case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		} else if isNumeric(currChar) {
 			currToken = Token{
 				Type:   NUMBER,
-				Lexeme: currChar,
+				Lexeme: strconv.Itoa(int(currChar)),
 				Line:   s.lineNum,
 			}
 
-			for n, e := s.peek(); e && strings.Contains("0123456789.", n); s.nextChar() {
-				currToken.Lexeme += n
+			for n, e := s.peek(); e && isNumeric(n) || TokenType(n) == DOT; s.nextChar() {
+				res := string(n)
+				if isNumeric(n) {
+					res = strconv.Itoa(int(n))
+				}
+
+				currToken.Lexeme += res
 			}
 
 			currToken.Literal = currToken.Lexeme
@@ -346,17 +359,23 @@ LOOP:
 					currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal[:idx])
 				}
 			}
-		case EOF:
+		} else if isAlphabet(currChar) || currChar == '_' {
 			currToken = Token{
-				Type:    EOF,
-				Lexeme:  string(EOF),
+				Type:    IDENTIFIER,
+				Lexeme:  string(currChar),
 				Literal: "null",
 				Line:    s.lineNum,
 			}
 
-			fmt.Println(currToken.String())
-			break LOOP
-		default:
+			for n, e := s.peek(); e && isAlphaNumeric(n) || n == '_'; s.nextChar() {
+				res := string(n)
+				if isNumeric(n) {
+					res = strconv.Itoa(int(n))
+				}
+
+				currToken.Lexeme += res
+			}
+		} else {
 			_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", s.lineNum+1, currChar)
 			lexErrFound = true
 			continue
@@ -365,26 +384,45 @@ LOOP:
 		fmt.Println(currToken.String())
 	}
 
+	fmt.Println((&Token{
+		Type:    EOF,
+		Lexeme:  string(EOF),
+		Literal: "null",
+		Line:    s.lineNum,
+	}).String())
+
 	if lexErrFound {
 		os.Exit(65)
 	}
 }
 
-func (s *Scanner) nextChar() (string, bool) {
+func (s *Scanner) nextChar() (byte, bool) {
 	if s.pos >= len(s.content) {
-		return "", false
+		return 0, false
 	}
 
 	c := s.content[s.pos]
 	s.pos++
 
-	return string(c), true
+	return c, true
 }
 
-func (s *Scanner) peek() (string, bool) {
+func (s *Scanner) peek() (byte, bool) {
 	if s.pos+1 >= len(s.content) {
-		return "", false
+		return 0, false
 	}
 
-	return string(s.content[s.pos+1]), true
+	return s.content[s.pos+1], true
+}
+
+func isNumeric(b byte) bool {
+	return b >= '0' && b <= '9'
+}
+
+func isAlphabet(b byte) bool {
+	return (b >= 'A' && b <= 'Z') || (b >= 'a' && b <= 'z')
+}
+
+func isAlphaNumeric(b byte) bool {
+	return isAlphabet(b) || isNumeric(b)
 }
