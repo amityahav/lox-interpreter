@@ -287,7 +287,13 @@ LOOP:
 				// comment encountered
 				s.nextChar()
 
-				for n, e := s.peek(); e && TokenType(n) != NEWLINE; n, e = s.nextChar() {
+				for {
+					n, e := s.peek()
+					if !e || TokenType(n) == NEWLINE {
+						break
+					}
+
+					s.nextChar()
 				}
 
 				continue
@@ -339,13 +345,20 @@ LOOP:
 				Line:   s.lineNum,
 			}
 
-			for n, e := s.peek(); e && isNumeric(n) || TokenType(n) == DOT; n, e = s.nextChar() {
+			for {
+				n, e := s.peek()
+				if !e || (!isNumeric(n) && TokenType(n) != DOT) {
+					break
+				}
+
 				res := string(n)
 				if isNumeric(n) {
 					res = strconv.Itoa(int(n))
 				}
 
 				currToken.Lexeme += res
+
+				s.nextChar()
 			}
 
 			currToken.Literal = currToken.Lexeme
@@ -370,13 +383,20 @@ LOOP:
 				Line:    s.lineNum,
 			}
 
-			for n, e := s.peek(); e && isAlphaNumeric(n) || n == '_'; n, e = s.nextChar() {
+			for {
+				n, e := s.peek()
+				if !e || (!isAlphaNumeric(n) && n != '_') {
+					break
+				}
+
 				res := string(n)
 				if isNumeric(n) {
 					res = strconv.Itoa(int(n))
 				}
 
 				currToken.Lexeme += res
+
+				s.nextChar()
 			}
 		} else {
 			_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", s.lineNum+1, string(currChar))
