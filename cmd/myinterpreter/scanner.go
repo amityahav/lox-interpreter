@@ -334,8 +334,9 @@ LOOP:
 			}
 		} else if isNumeric(currChar) {
 			currToken = Token{
-				Type: NUMBER,
-				Line: s.lineNum,
+				Type:   NUMBER,
+				Lexeme: strconv.Itoa(int(currChar)),
+				Line:   s.lineNum,
 			}
 
 			for n, e := s.peek(); e && isNumeric(n) || TokenType(n) == DOT; n, e = s.nextChar() {
@@ -365,6 +366,7 @@ LOOP:
 			currToken = Token{
 				Type:    IDENTIFIER,
 				Literal: "null",
+				Lexeme:  string(currChar),
 				Line:    s.lineNum,
 			}
 
