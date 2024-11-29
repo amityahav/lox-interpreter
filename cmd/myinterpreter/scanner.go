@@ -389,12 +389,7 @@ LOOP:
 					break
 				}
 
-				res := string(n)
-				if isNumeric(n) {
-					res = strconv.Itoa(int(n))
-				}
-
-				currToken.Lexeme += res
+				currToken.Lexeme += string(n)
 
 				s.nextChar()
 			}
