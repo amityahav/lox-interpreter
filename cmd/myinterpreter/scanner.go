@@ -329,12 +329,7 @@ LOOP:
 					break
 				}
 
-				res := string(n)
-				if isNumeric(n) {
-					res = strconv.Itoa(int(n))
-				}
-
-				currToken.Literal += res
+				currToken.Literal += string(n)
 
 				s.nextChar()
 			}
