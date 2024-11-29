@@ -107,298 +107,281 @@ func (t *Token) String() string {
 }
 
 type Scanner struct {
-	lines    []string
-	currLine int
+	content []byte
+	pos     int
+	lineNum int
 }
 
 func NewScanner(content []byte) *Scanner {
-	contentStr := string(content)
-	lines := strings.Split(contentStr, string(NEWLINE))
-	s := Scanner{lines: lines}
+	s := Scanner{content: content}
 
 	return &s
 }
 
 func (s *Scanner) Scan() {
 	var (
-		lexErrFound   bool
-		stringStarted bool
-		numberStarted bool
-		currToken     Token
+		lexErrFound bool
+		currToken   Token
 	)
 
+LOOP:
 	for {
-		lineNum, line, ok := s.nextLine()
+		currChar, ok := s.nextChar()
 		if !ok {
-			break
+			currChar = string(EOF)
 		}
 
-	LOOP:
-		for i := 0; i < len(line); i++ {
-			if stringStarted && TokenType(line[i]) != QUOTE {
-				currToken.Literal += string(line[i])
+		switch TokenType(currChar) {
+		case LEFT_PAREN:
+			currToken = Token{
+				Type:    LEFT_PAREN,
+				Lexeme:  string(LEFT_PAREN),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case RIGHT_PAREN:
+			currToken = Token{
+				Type:    RIGHT_PAREN,
+				Lexeme:  string(RIGHT_PAREN),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case LEFT_BRACE:
+			currToken = Token{
+				Type:    LEFT_BRACE,
+				Lexeme:  string(LEFT_BRACE),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case RIGHT_BRACE:
+			currToken = Token{
+				Type:    RIGHT_BRACE,
+				Lexeme:  string(RIGHT_BRACE),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case COMMA:
+			currToken = Token{
+				Type:    COMMA,
+				Lexeme:  string(COMMA),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case DOT:
+			currToken = Token{
+				Type:    DOT,
+				Lexeme:  string(DOT),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case SEMICOLON:
+			currToken = Token{
+				Type:    SEMICOLON,
+				Lexeme:  string(SEMICOLON),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case PLUS:
+			currToken = Token{
+				Type:    PLUS,
+				Lexeme:  string(PLUS),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case MINUS:
+			currToken = Token{
+				Type:    MINUS,
+				Lexeme:  string(MINUS),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case STAR:
+			currToken = Token{
+				Type:    STAR,
+				Lexeme:  string(STAR),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case NEWLINE:
+			s.lineNum++
+			continue
+		case EQUAL:
+			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == EQUAL {
+				currToken = Token{
+					Type:    EQUAL_EQUAL,
+					Lexeme:  string(EQUAL_EQUAL),
+					Literal: "null",
+					Line:    s.lineNum,
+				}
+
+				s.nextChar()
+				break
+			}
+
+			currToken = Token{
+				Type:    EQUAL,
+				Lexeme:  string(EQUAL),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case BANG:
+			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == EQUAL {
+				currToken = Token{
+					Type:    BANG_EQUAL,
+					Lexeme:  string(BANG_EQUAL),
+					Literal: "null",
+					Line:    s.lineNum,
+				}
+
+				s.nextChar()
+				break
+			}
+
+			currToken = Token{
+				Type:    BANG,
+				Lexeme:  string(BANG),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case LESS:
+			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == EQUAL {
+				currToken = Token{
+					Type:    LESS_EQUAL,
+					Lexeme:  string(LESS_EQUAL),
+					Literal: "null",
+					Line:    s.lineNum,
+				}
+
+				s.nextChar()
+				break
+			}
+
+			currToken = Token{
+				Type:    LESS,
+				Lexeme:  string(LESS),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case GREATER:
+			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == EQUAL {
+				currToken = Token{
+					Type:    GREATER_EQUAL,
+					Lexeme:  string(GREATER_EQUAL),
+					Literal: "null",
+					Line:    s.lineNum,
+				}
+
+				s.nextChar()
+				break
+			}
+
+			currToken = Token{
+				Type:    GREATER,
+				Lexeme:  string(GREATER),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case SLASH:
+			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == SLASH {
+				// comment encountered
+				s.nextChar()
+
+				for n, e := s.peek(); e && TokenType(n) != NEWLINE; s.nextChar() {
+				}
+
 				continue
 			}
 
-			if numberStarted {
-				if strings.Contains("0123456789.", string(line[i])) {
-					currToken.Lexeme += string(line[i])
-					continue
-				}
-
-				numberStarted = false
-
-				currToken.Literal = currToken.Lexeme
-				if !strings.Contains(currToken.Literal, ".") {
-					currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal)
-				} else {
-					idx := strings.Index(currToken.Literal, ".")
-					d, err := strconv.Atoi(currToken.Literal[idx+1:])
-					if err != nil {
-						panic(err)
-					}
-
-					if d == 0 {
-						currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal[:idx])
-					}
-				}
-
-				fmt.Println(currToken.String())
+			currToken = Token{
+				Type:    SLASH,
+				Lexeme:  string(SLASH),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
+		case SPACE, TAB:
+			continue
+		case QUOTE:
+			currToken = Token{
+				Type: STRING,
+				Line: s.lineNum,
 			}
 
-			switch TokenType(line[i]) {
-			case LEFT_PAREN:
-				currToken = Token{
-					Type:    LEFT_PAREN,
-					Lexeme:  string(LEFT_PAREN),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case RIGHT_PAREN:
-				currToken = Token{
-					Type:    RIGHT_PAREN,
-					Lexeme:  string(RIGHT_PAREN),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case LEFT_BRACE:
-				currToken = Token{
-					Type:    LEFT_BRACE,
-					Lexeme:  string(LEFT_BRACE),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case RIGHT_BRACE:
-				currToken = Token{
-					Type:    RIGHT_BRACE,
-					Lexeme:  string(RIGHT_BRACE),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case COMMA:
-				currToken = Token{
-					Type:    COMMA,
-					Lexeme:  string(COMMA),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case DOT:
-				currToken = Token{
-					Type:    DOT,
-					Lexeme:  string(DOT),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case SEMICOLON:
-				currToken = Token{
-					Type:    SEMICOLON,
-					Lexeme:  string(SEMICOLON),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case PLUS:
-				currToken = Token{
-					Type:    PLUS,
-					Lexeme:  string(PLUS),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case MINUS:
-				currToken = Token{
-					Type:    MINUS,
-					Lexeme:  string(MINUS),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case STAR:
-				currToken = Token{
-					Type:    STAR,
-					Lexeme:  string(STAR),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case EQUAL:
-				if i+1 < len(line) && TokenType(line[i+1]) == EQUAL {
-					currToken = Token{
-						Type:    EQUAL_EQUAL,
-						Lexeme:  string(EQUAL_EQUAL),
-						Literal: "null",
-						Line:    lineNum,
-					}
-
-					i++
-					break
-				}
-
-				currToken = Token{
-					Type:    EQUAL,
-					Lexeme:  string(EQUAL),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case BANG:
-				if i+1 < len(line) && TokenType(line[i+1]) == EQUAL {
-					currToken = Token{
-						Type:    BANG_EQUAL,
-						Lexeme:  string(BANG_EQUAL),
-						Literal: "null",
-						Line:    lineNum,
-					}
-
-					i++
-					break
-				}
-
-				currToken = Token{
-					Type:    BANG,
-					Lexeme:  string(BANG),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case LESS:
-				if i+1 < len(line) && TokenType(line[i+1]) == EQUAL {
-					currToken = Token{
-						Type:    LESS_EQUAL,
-						Lexeme:  string(LESS_EQUAL),
-						Literal: "null",
-						Line:    lineNum,
-					}
-
-					i++
-					break
-				}
-
-				currToken = Token{
-					Type:    LESS,
-					Lexeme:  string(LESS),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case GREATER:
-				if i+1 < len(line) && TokenType(line[i+1]) == EQUAL {
-					currToken = Token{
-						Type:    GREATER_EQUAL,
-						Lexeme:  string(GREATER_EQUAL),
-						Literal: "null",
-						Line:    lineNum,
-					}
-
-					i++
-					break
-				}
-
-				currToken = Token{
-					Type:    GREATER,
-					Lexeme:  string(GREATER),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case SLASH:
-				if i+1 < len(line) && TokenType(line[i+1]) == SLASH {
+			for {
+				n, e := s.peek()
+				if !e {
+					_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unterminated string.", currToken.Line+1)
+					lexErrFound = true
 					break LOOP
 				}
 
-				currToken = Token{
-					Type:    SLASH,
-					Lexeme:  string(SLASH),
-					Literal: "null",
-					Line:    lineNum,
-				}
-			case SPACE, TAB:
-				continue
-			case QUOTE:
-				if !stringStarted {
-					stringStarted = true
-					currToken = Token{
-						Type: STRING,
-						Line: lineNum,
-					}
-
-					continue
+				if TokenType(n) == QUOTE {
+					currToken.Lexeme = fmt.Sprintf("\"%s\"", currToken.Literal)
+					break
 				}
 
-				// we found the matching quote.
-				stringStarted = false
-				currToken.Lexeme = fmt.Sprintf("\"%s\"", currToken.Literal)
-			case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
-				numberStarted = true
-				currToken = Token{
-					Type:   NUMBER,
-					Lexeme: strconv.Itoa(int(line[i] - '0')),
-					Line:   lineNum,
+				currToken.Literal += n
+			}
+		case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
+			currToken = Token{
+				Type:   NUMBER,
+				Lexeme: currChar,
+				Line:   s.lineNum,
+			}
+
+			for n, e := s.peek(); e && strings.Contains("0123456789.", n); s.nextChar() {
+				currToken.Lexeme += n
+			}
+
+			currToken.Literal = currToken.Lexeme
+			if !strings.Contains(currToken.Literal, ".") {
+				currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal)
+			} else {
+				idx := strings.Index(currToken.Literal, ".")
+				d, err := strconv.Atoi(currToken.Literal[idx+1:])
+				if err != nil {
+					panic(err)
 				}
 
-				continue
-			default:
-				_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNum+1, string(line[i]))
-				lexErrFound = true
-				continue
+				if d == 0 {
+					currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal[:idx])
+				}
 			}
-
-			fmt.Println(currToken.String())
-		}
-	}
-
-	if stringStarted {
-		// if we found an unterminated string
-		_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unterminated string.", currToken.Line+1)
-	} else if numberStarted {
-		currToken.Literal = currToken.Lexeme
-		if !strings.Contains(currToken.Literal, ".") {
-			currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal)
-		} else {
-			idx := strings.Index(currToken.Literal, ".")
-			d, err := strconv.Atoi(currToken.Literal[idx+1:])
-			if err != nil {
-				panic(err)
+		case EOF:
+			currToken = Token{
+				Type:    EOF,
+				Lexeme:  string(EOF),
+				Literal: "null",
+				Line:    s.lineNum,
 			}
-
-			if d == 0 {
-				currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal[:idx])
-			}
+		default:
+			_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", s.lineNum+1, currChar)
+			lexErrFound = true
+			continue
 		}
 
 		fmt.Println(currToken.String())
 	}
 
-	fmt.Println((&Token{
-		Type:    EOF,
-		Lexeme:  string(EOF),
-		Literal: "null",
-	}).String())
-
-	if lexErrFound || stringStarted {
+	if lexErrFound {
 		os.Exit(65)
 	}
 }
 
-func (s *Scanner) nextLine() (int, string, bool) {
-	if s.currLine >= len(s.lines) {
-		return 0, "", false
+func (s *Scanner) nextChar() (string, bool) {
+	if s.pos >= len(s.content) {
+		return "", false
 	}
 
-	c := s.currLine
-	s.currLine++
+	c := s.content[s.pos]
+	s.pos++
 
-	return c, s.lines[c], true
+	return string(c), true
+}
+
+func (s *Scanner) peek() (string, bool) {
+	if s.pos+1 >= len(s.content) {
+		return "", false
+	}
+
+	return string(s.content[s.pos+1]), true
 }
