@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -356,13 +355,14 @@ LOOP:
 				currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal)
 			} else {
 				idx := strings.Index(currToken.Literal, ".")
-				d, err := strconv.Atoi(currToken.Literal[idx+1:])
-				if err != nil {
-					panic(err)
+
+				var i int
+				for i = len(currToken.Literal) - 1; i > idx && currToken.Literal[i] == '0'; i-- {
 				}
 
-				if d == 0 {
-					currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal[:idx])
+				currToken.Literal = currToken.Literal[:i+1]
+				if i == idx {
+					currToken.Literal = fmt.Sprintf("%s0", currToken.Literal)
 				}
 			}
 		} else if isAlphabet(currChar) || currChar == '_' {
