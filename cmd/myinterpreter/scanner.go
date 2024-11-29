@@ -116,7 +116,10 @@ type Scanner struct {
 }
 
 func NewScanner(content []byte) *Scanner {
-	s := Scanner{content: content}
+	s := Scanner{
+		content: content,
+		pos:     -1,
+	}
 
 	return &s
 }
@@ -284,7 +287,7 @@ LOOP:
 				// comment encountered
 				s.nextChar()
 
-				for n, e := s.peek(); e && TokenType(n) != NEWLINE; s.nextChar() {
+				for n, e := s.peek(); e && TokenType(n) != NEWLINE; n, e = s.nextChar() {
 				}
 
 				continue
@@ -331,12 +334,11 @@ LOOP:
 			}
 		} else if isNumeric(currChar) {
 			currToken = Token{
-				Type:   NUMBER,
-				Lexeme: strconv.Itoa(int(currChar)),
-				Line:   s.lineNum,
+				Type: NUMBER,
+				Line: s.lineNum,
 			}
 
-			for n, e := s.peek(); e && isNumeric(n) || TokenType(n) == DOT; s.nextChar() {
+			for n, e := s.peek(); e && isNumeric(n) || TokenType(n) == DOT; n, e = s.nextChar() {
 				res := string(n)
 				if isNumeric(n) {
 					res = strconv.Itoa(int(n))
@@ -362,12 +364,11 @@ LOOP:
 		} else if isAlphabet(currChar) || currChar == '_' {
 			currToken = Token{
 				Type:    IDENTIFIER,
-				Lexeme:  string(currChar),
 				Literal: "null",
 				Line:    s.lineNum,
 			}
 
-			for n, e := s.peek(); e && isAlphaNumeric(n) || n == '_'; s.nextChar() {
+			for n, e := s.peek(); e && isAlphaNumeric(n) || n == '_'; n, e = s.nextChar() {
 				res := string(n)
 				if isNumeric(n) {
 					res = strconv.Itoa(int(n))
@@ -376,7 +377,7 @@ LOOP:
 				currToken.Lexeme += res
 			}
 		} else {
-			_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", s.lineNum+1, currChar)
+			_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", s.lineNum+1, string(currChar))
 			lexErrFound = true
 			continue
 		}
@@ -397,12 +398,13 @@ LOOP:
 }
 
 func (s *Scanner) nextChar() (byte, bool) {
+	s.pos++
+
 	if s.pos >= len(s.content) {
 		return 0, false
 	}
 
 	c := s.content[s.pos]
-	s.pos++
 
 	return c, true
 }
