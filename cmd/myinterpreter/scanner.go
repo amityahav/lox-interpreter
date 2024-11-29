@@ -341,7 +341,7 @@ LOOP:
 		} else if isNumeric(currChar) {
 			currToken = Token{
 				Type:   NUMBER,
-				Lexeme: strconv.Itoa(int(currChar)),
+				Lexeme: string(currChar),
 				Line:   s.lineNum,
 			}
 
@@ -351,12 +351,7 @@ LOOP:
 					break
 				}
 
-				res := string(n)
-				if isNumeric(n) {
-					res = strconv.Itoa(int(n))
-				}
-
-				currToken.Lexeme += res
+				currToken.Lexeme += string(n)
 
 				s.nextChar()
 			}
