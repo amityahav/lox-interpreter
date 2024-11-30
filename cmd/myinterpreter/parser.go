@@ -64,7 +64,6 @@ func NewParser(tokens []*Token) *Parser {
 
 var ErrNoMoreTokens = fmt.Errorf("no more tokens")
 
-// ("foo")
 func (p *Parser) NextExpression() (Expression, error) {
 	var currExpr Expression
 
@@ -95,6 +94,9 @@ func (p *Parser) NextExpression() (Expression, error) {
 		if n.Type != RIGHT_PAREN {
 			return nil, fmt.Errorf("unbalanced parenthesis")
 		}
+
+		currExpr = &ge
+		p.nextToken()
 	case token.Type == RIGHT_PAREN:
 		// TODO: we get here if there's an empty group or an unbalanced parenthesis
 		return nil, fmt.Errorf("something")
