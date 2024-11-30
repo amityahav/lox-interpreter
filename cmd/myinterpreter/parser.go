@@ -33,6 +33,10 @@ type UnaryExpr struct {
 	Expr  Expression
 }
 
+func (ue *UnaryExpr) String() string {
+	return fmt.Sprintf("(%s %s)", ue.Unary, ue.Expr.String())
+}
+
 type BinaryExpr struct {
 	Operator  string
 	LeftExpr  Expression
@@ -52,7 +56,6 @@ func (ge *GroupingExpr) String() string {
 type Parser struct {
 	tokens []*Token
 	pos    int
-	done   bool
 }
 
 func NewParser(tokens []*Token) *Parser {
@@ -87,11 +90,7 @@ func (p *Parser) NextExpression() (Expression, error) {
 		ge.Expr = e
 
 		n, exists := p.peek()
-		if !exists {
-			return nil, ErrNoMoreTokens
-		}
-
-		if n.Type != RIGHT_PAREN {
+		if !exists || n.Type != RIGHT_PAREN {
 			return nil, fmt.Errorf("unbalanced parenthesis")
 		}
 
@@ -100,13 +99,17 @@ func (p *Parser) NextExpression() (Expression, error) {
 	case token.Type == RIGHT_PAREN:
 		// TODO: we get here if there's an empty group or an unbalanced parenthesis
 		return nil, fmt.Errorf("something")
+	case token.Type == BANG || token.Type == MINUS:
+		var ue UnaryExpr
+		e, err := p.NextExpression()
+		if err != nil {
+			return nil, err
+		}
+
+		ue.Expr = e
 	}
 
 	return currExpr, nil
-}
-
-func (p *Parser) HasNext() bool {
-	return !p.done
 }
 
 func (p *Parser) nextToken() (*Token, bool) {
