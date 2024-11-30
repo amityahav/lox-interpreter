@@ -74,7 +74,38 @@ func (p *Parser) parseExpression() (Expression, error) {
 }
 
 func (p *Parser) parseEquality() (Expression, error) {
-	return p.parseComparison()
+	e, err := p.parseComparison()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		token, ok := p.nextToken()
+		if !ok {
+			break
+		}
+
+		switch token.Type {
+		case BANG_EQUAL, EQUAL_EQUAL:
+			rightExpr, err := p.parseComparison()
+			if err != nil {
+				return nil, err
+			}
+
+			e = &BinaryExpr{
+				Operator:  string(token.Type),
+				LeftExpr:  e,
+				RightExpr: rightExpr,
+			}
+
+			continue
+		}
+
+		break
+	}
+
+	p.goBack()
+	return e, nil
 }
 
 func (p *Parser) parseComparison() (Expression, error) {
