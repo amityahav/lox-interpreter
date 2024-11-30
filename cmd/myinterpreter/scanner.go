@@ -439,7 +439,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 				currToken.Type = TokenType(currToken.Lexeme)
 			}
 		} else {
-			return nil, fmt.Errorf("[line %d] Error: Unexpected character: %s\n", s.lineNum+1, string(currChar))
+			return nil, fmt.Errorf("[line %d] Error: Unexpected character: %s!\n", s.lineNum+1, string(currChar))
 		}
 
 		return &currToken, nil
