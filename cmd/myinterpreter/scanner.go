@@ -134,6 +134,8 @@ func (t TokenType) Type() string {
 		return "RETURN"
 	case "super":
 		return "SUPER"
+	case "this":
+		return "THIS"
 	case "true":
 		return "TRUE"
 	case "var":
