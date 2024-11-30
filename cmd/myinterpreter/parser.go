@@ -107,6 +107,7 @@ func (p *Parser) NextExpression() (Expression, error) {
 		}
 
 		ue.Expr = e
+		currExpr = &ue
 	}
 
 	return currExpr, nil
