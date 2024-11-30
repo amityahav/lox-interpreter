@@ -83,8 +83,8 @@ func (p *Parser) HasNext() bool {
 func (p *Parser) nextToken() (*Token, bool) {
 	p.pos++
 
-	if p.pos >= len(p.tokens) {
-		p.pos = len(p.tokens)
+	if p.pos >= len(p.tokens)-1 { // last token is EOF
+		p.pos = len(p.tokens) - 1
 		return nil, false
 	}
 
