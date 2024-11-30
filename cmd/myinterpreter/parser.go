@@ -4,18 +4,6 @@ import (
 	"fmt"
 )
 
-// expression     → literal
-//				  | unary
-//				  | binary
-//				  | grouping ;
-//
-// literal        → NUMBER | STRING | "true" | "false" | "nil" ;
-// grouping       → "(" expression ")" ;
-// unary          → ( "-" | "!" ) expression ;
-// binary         → expression operator expression ;
-// operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
-//					| "+"  | "-"  | "*" | "/" ;
-
 type Expression interface {
 	String() string
 }
@@ -94,7 +82,38 @@ func (p *Parser) parseComparison() (Expression, error) {
 }
 
 func (p *Parser) parseTerm() (Expression, error) {
-	return p.parseFactor()
+	e, err := p.parseFactor()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		token, ok := p.nextToken()
+		if !ok {
+			break
+		}
+
+		switch token.Type {
+		case PLUS, MINUS:
+			rightExpr, err := p.parseFactor()
+			if err != nil {
+				return nil, err
+			}
+
+			e = &BinaryExpr{
+				Operator:  string(token.Type),
+				LeftExpr:  e,
+				RightExpr: rightExpr,
+			}
+
+			continue
+		}
+
+		break
+	}
+
+	p.goBack()
+	return e, nil
 }
 
 func (p *Parser) parseFactor() (Expression, error) {
@@ -125,10 +144,10 @@ func (p *Parser) parseFactor() (Expression, error) {
 			continue
 		}
 
-		p.goBack()
 		break
 	}
 
+	p.goBack()
 	return e, nil
 }
 
@@ -221,13 +240,4 @@ func (p *Parser) goBack() {
 	}
 
 	p.pos--
-}
-
-func isOperator(token *Token) bool {
-	switch token.Type {
-	case PLUS, MINUS, STAR, EQUAL, EQUAL_EQUAL, BANG, BANG_EQUAL, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL, SLASH:
-		return true
-	}
-
-	return false
 }
