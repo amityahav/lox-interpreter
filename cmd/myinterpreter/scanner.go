@@ -37,6 +37,25 @@ const (
 	EOF           TokenType = ""
 )
 
+var reservedWords = map[TokenType]struct{}{
+	"and":    {},
+	"class":  {},
+	"else":   {},
+	"false":  {},
+	"for":    {},
+	"fun":    {},
+	"if":     {},
+	"nil":    {},
+	"or":     {},
+	"print":  {},
+	"return": {},
+	"super":  {},
+	"this":   {},
+	"true":   {},
+	"var":    {},
+	"while":  {},
+}
+
 func (t TokenType) Type() string {
 	switch t {
 	case LEFT_PAREN:
@@ -91,6 +110,37 @@ func (t TokenType) Type() string {
 		return "IDENTIFIER"
 	case EOF:
 		return "EOF"
+	case "and":
+		return "AND"
+	case "class":
+		return "CLASS"
+	case "else":
+		return "ELSE"
+	case "false":
+		return "FALSE"
+	case "for":
+		return "FOR"
+	case "fun":
+		return "FUN"
+	case "if":
+		return "IF"
+	case "nil":
+		return "NIL"
+	case "or":
+		return "OR"
+	case "print":
+		return "PRINT"
+	case "return":
+		return "RETURN"
+	case "super":
+		return "SUPER"
+	case "true":
+		return "TRUE"
+	case "var":
+		return "VAR"
+	case "while":
+		return "WHILE"
+
 	default:
 		return ""
 	}
@@ -381,6 +431,10 @@ func (s *Scanner) NextToken() (*Token, error) {
 				currToken.Lexeme += string(n)
 
 				s.nextChar()
+			}
+
+			if _, found := reservedWords[TokenType(currToken.Lexeme)]; found {
+				currToken.Type = TokenType(currToken.Lexeme)
 			}
 		} else {
 			return nil, fmt.Errorf("[line %d] Error: Unexpected character: %s\n", s.lineNum+1, string(currChar))
