@@ -109,17 +109,20 @@ func (p *Parser) parseFactor() (Expression, error) {
 			break
 		}
 
-		if token.Type == SLASH || token.Type == STAR {
-			rightExpr, err := p.parseUnary()
-			if err != nil {
-				return nil, err
-			}
+		if token.Type != SLASH && token.Type != STAR {
+			p.goBack()
+			break
+		}
 
-			e = &BinaryExpr{
-				Operator:  string(token.Type),
-				LeftExpr:  e,
-				RightExpr: rightExpr,
-			}
+		rightExpr, err := p.parseUnary()
+		if err != nil {
+			return nil, err
+		}
+
+		e = &BinaryExpr{
+			Operator:  string(token.Type),
+			LeftExpr:  e,
+			RightExpr: rightExpr,
 		}
 	}
 
@@ -202,7 +205,7 @@ func (p *Parser) nextToken() (*Token, bool) {
 }
 
 func (p *Parser) peek() (*Token, bool) {
-	if p.pos >= len(p.tokens) {
+	if p.pos+1 >= len(p.tokens)-1 {
 		return nil, false
 	}
 
