@@ -370,7 +370,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 			for {
 				n, e := s.peek()
 				if !e {
-					return nil, fmt.Errorf("[line %d] Error: Unterminated string", currToken.Line+1)
+					return nil, fmt.Errorf("[line %d] Error: Unterminated string.", currToken.Line+1)
 				}
 
 				if TokenType(n) == QUOTE {
