@@ -36,9 +36,7 @@ func (be *BinaryExpr) String() string {
 }
 
 type GroupingExpr struct {
-	LeftParen  string
-	RightParen string
-	Expr       Expression
+	Expr Expression
 }
 
 func (ge *GroupingExpr) String() string {
@@ -57,8 +55,6 @@ func NewParser(tokens []*Token) *Parser {
 	}
 }
 
-var ErrNoMoreTokens = fmt.Errorf("no more tokens")
-
 //	expression     → equality ;
 //	equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 //	comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
@@ -68,6 +64,10 @@ var ErrNoMoreTokens = fmt.Errorf("no more tokens")
 //					 | primary ;
 //	primary        → NUMBER | STRING | "true" | "false" | "nil"
 //					 | "(" expression ")" ;
+
+func (p *Parser) NextExpression() (Expression, error) {
+	return p.parseExpression()
+}
 
 func (p *Parser) parseExpression() (Expression, error) {
 	return p.parseEquality()
@@ -250,31 +250,24 @@ func (p *Parser) parsePrimary() (Expression, error) {
 	case token.Type == NUMBER || token.Type == STRING:
 		currExpr = &LiteralExpr{Literal: token.Literal}
 	case token.Type == LEFT_PAREN:
-		var ge GroupingExpr
 		e, err := p.parseExpression()
 		if err != nil {
 			return nil, err
 		}
-
-		ge.Expr = e
 
 		n, exists := p.peek()
 		if !exists || n.Type != RIGHT_PAREN {
 			return nil, fmt.Errorf("unbalanced parenthesis")
 		}
 
-		currExpr = &ge
 		p.nextToken()
+		currExpr = &GroupingExpr{Expr: e}
 	case token.Type == RIGHT_PAREN:
 		// TODO: we get here if there's an empty group or an unbalanced parenthesis
 		return nil, fmt.Errorf("something")
 	}
 
 	return currExpr, nil
-}
-
-func (p *Parser) NextExpression() (Expression, error) {
-	return p.parseExpression()
 }
 
 func (p *Parser) nextToken() (*Token, bool) {
@@ -303,3 +296,5 @@ func (p *Parser) goBack() {
 
 	p.pos--
 }
+
+var ErrNoMoreTokens = fmt.Errorf("no more tokens")
