@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 )
@@ -15,7 +16,7 @@ func main() {
 
 	command := os.Args[1]
 
-	if command != "tokenize" {
+	if command != "parse" {
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
 	}
@@ -27,18 +28,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	var errFound bool
+	var (
+		errFound bool
+		tokens   []*Token
+	)
 
 	s := NewScanner(fileContents)
-
 	for s.HasNext() {
 		token, err := s.NextToken()
 		if err != nil {
-			fmt.Fprint(os.Stderr, err.Error()+"\n")
+			//fmt.Fprint(os.Stderr, err.Error()+"\n")
 			errFound = true
 		} else {
-			fmt.Println(token)
+			//fmt.Println(token)
+			tokens = append(tokens, token)
 		}
+	}
+
+	p := NewParser(tokens)
+	for expr, err := p.NextExpression(); !errors.Is(err, ErrNoMoreTokens); expr, err = p.NextExpression() {
+		fmt.Println(expr.String())
 	}
 
 	if errFound {
