@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -439,7 +440,8 @@ func (s *Scanner) NextToken() (*Token, error) {
 				currToken.Type = TokenType(currToken.Lexeme)
 			}
 		} else {
-			return nil, fmt.Errorf("[line %d] Error: Unexpected character: %s\n", s.lineNum+1, string(currChar))
+			errStr := fmt.Sprintf("[line %d] Error: Unexpected character: ", s.lineNum+1) + string(currChar)
+			return nil, errors.New(errStr)
 		}
 
 		return &currToken, nil

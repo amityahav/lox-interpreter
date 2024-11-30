@@ -34,7 +34,7 @@ func main() {
 	for s.HasNext() {
 		token, err := s.NextToken()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, err.Error())
+			fmt.Fprint(os.Stderr, err.Error()+"\n")
 			errFound = true
 		} else {
 			fmt.Println(token)
