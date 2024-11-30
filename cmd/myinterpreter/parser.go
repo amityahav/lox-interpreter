@@ -109,21 +109,24 @@ func (p *Parser) parseFactor() (Expression, error) {
 			break
 		}
 
-		if token.Type != SLASH && token.Type != STAR {
-			p.goBack()
-			break
+		switch token.Type {
+		case SLASH, STAR:
+			rightExpr, err := p.parseUnary()
+			if err != nil {
+				return nil, err
+			}
+
+			e = &BinaryExpr{
+				Operator:  string(token.Type),
+				LeftExpr:  e,
+				RightExpr: rightExpr,
+			}
+
+			continue
 		}
 
-		rightExpr, err := p.parseUnary()
-		if err != nil {
-			return nil, err
-		}
-
-		e = &BinaryExpr{
-			Operator:  string(token.Type),
-			LeftExpr:  e,
-			RightExpr: rightExpr,
-		}
+		p.goBack()
+		break
 	}
 
 	return e, nil
