@@ -24,8 +24,8 @@ type LiteralExpr struct {
 	Literal string
 }
 
-func (e *LiteralExpr) String() string {
-	return e.Literal
+func (le *LiteralExpr) String() string {
+	return le.Literal
 }
 
 type UnaryExpr struct {
@@ -40,9 +40,13 @@ type BinaryExpr struct {
 }
 
 type GroupingExpr struct {
-	LeftBrace  string
-	RightBrace string
+	LeftParen  string
+	RightParen string
 	Expr       Expression
+}
+
+func (ge *GroupingExpr) String() string {
+	return fmt.Sprintf("(group %s)", ge.Expr.String())
 }
 
 type Parser struct {
@@ -60,6 +64,7 @@ func NewParser(tokens []*Token) *Parser {
 
 var ErrNoMoreTokens = fmt.Errorf("no more tokens")
 
+// ("foo")
 func (p *Parser) NextExpression() (Expression, error) {
 	var currExpr Expression
 
@@ -73,6 +78,26 @@ func (p *Parser) NextExpression() (Expression, error) {
 		currExpr = &LiteralExpr{Literal: token.Lexeme}
 	case token.Type == NUMBER || token.Type == STRING:
 		currExpr = &LiteralExpr{Literal: token.Literal}
+	case token.Type == LEFT_PAREN:
+		var ge GroupingExpr
+		e, err := p.NextExpression()
+		if err != nil {
+			return nil, err
+		}
+
+		ge.Expr = e
+
+		n, exists := p.peek()
+		if !exists {
+			return nil, ErrNoMoreTokens
+		}
+
+		if n.Type != RIGHT_PAREN {
+			return nil, fmt.Errorf("unbalanced parenthesis")
+		}
+	case token.Type == RIGHT_PAREN:
+		// TODO: we get here if there's an empty group or an unbalanced parenthesis
+		return nil, fmt.Errorf("something")
 	}
 
 	return currExpr, nil
@@ -91,4 +116,12 @@ func (p *Parser) nextToken() (*Token, bool) {
 	}
 
 	return p.tokens[p.pos], true
+}
+
+func (p *Parser) peek() (*Token, bool) {
+	if p.pos >= len(p.tokens) {
+		return nil, false
+	}
+
+	return p.tokens[p.pos+1], true
 }
