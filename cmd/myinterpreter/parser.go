@@ -72,7 +72,7 @@ func (p *Parser) NextExpression() (Expression, error) {
 	case token.Lexeme == "true" || token.Lexeme == "false" || token.Lexeme == "nil":
 		currExpr = &LiteralExpr{Literal: token.Lexeme}
 	case token.Type == NUMBER:
-		currExpr = &LiteralExpr{Literal: token.Lexeme}
+		currExpr = &LiteralExpr{Literal: token.Literal}
 	}
 
 	return currExpr, nil
