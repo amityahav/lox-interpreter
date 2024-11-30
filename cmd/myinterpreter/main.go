@@ -16,11 +16,6 @@ func main() {
 
 	command := os.Args[1]
 
-	if command != "parse" {
-		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
-		os.Exit(1)
-	}
-
 	filename := os.Args[2]
 	fileContents, err := os.ReadFile(filename)
 	if err != nil {
@@ -33,24 +28,37 @@ func main() {
 		tokens   []*Token
 	)
 
-	s := NewScanner(fileContents)
-	for s.HasNext() {
-		token, err := s.NextToken()
-		if err != nil {
-			//fmt.Fprint(os.Stderr, err.Error()+"\n")
-			errFound = true
-		} else {
-			//fmt.Println(token)
-			tokens = append(tokens, token)
+	if command == "tokenize" {
+		s := NewScanner(fileContents)
+		for s.HasNext() {
+			token, err := s.NextToken()
+			if err != nil {
+				fmt.Fprint(os.Stderr, err.Error()+"\n")
+				errFound = true
+			} else {
+				fmt.Println(token)
+			}
 		}
-	}
 
-	p := NewParser(tokens)
-	for expr, err := p.NextExpression(); !errors.Is(err, ErrNoMoreTokens); expr, err = p.NextExpression() {
-		fmt.Println(expr.String())
-	}
+		if errFound {
+			os.Exit(65)
+		}
+	} else if command == "parse" {
+		s := NewScanner(fileContents)
+		for s.HasNext() {
+			token, err := s.NextToken()
+			if err != nil {
+				//fmt.Fprint(os.Stderr, err.Error()+"\n")
+				errFound = true
+			} else {
+				//fmt.Println(token)
+				tokens = append(tokens, token)
+			}
+		}
 
-	if errFound {
-		os.Exit(65)
+		p := NewParser(tokens)
+		for expr, err := p.NextExpression(); !errors.Is(err, ErrNoMoreTokens); expr, err = p.NextExpression() {
+			fmt.Println(expr.String())
+		}
 	}
 }
