@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -112,6 +111,7 @@ type Scanner struct {
 	content []byte
 	pos     int
 	lineNum int
+	done    bool
 }
 
 func NewScanner(content []byte) *Scanner {
@@ -123,20 +123,21 @@ func NewScanner(content []byte) *Scanner {
 	return &s
 }
 
-func (s *Scanner) Scan() {
-	var (
-		lexErrFound bool
-		currToken   Token
-	)
+func (s *Scanner) NextToken() (*Token, error) {
+	var currToken Token
 
-LOOP:
 	for {
 		currChar, ok := s.nextChar()
 		if !ok {
-			break
-		}
+			currToken = Token{
+				Type:    EOF,
+				Lexeme:  string(EOF),
+				Literal: "null",
+				Line:    s.lineNum,
+			}
 
-		if TokenType(currChar) == LEFT_PAREN {
+			s.done = true
+		} else if TokenType(currChar) == LEFT_PAREN {
 			currToken = Token{
 				Type:    LEFT_PAREN,
 				Lexeme:  string(LEFT_PAREN),
@@ -317,9 +318,7 @@ LOOP:
 			for {
 				n, e := s.peek()
 				if !e {
-					_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unterminated string.", currToken.Line+1)
-					lexErrFound = true
-					break LOOP
+					return nil, fmt.Errorf("[line %d] Error: Unterminated string", currToken.Line+1)
 				}
 
 				if TokenType(n) == QUOTE {
@@ -384,30 +383,22 @@ LOOP:
 				s.nextChar()
 			}
 		} else {
-			_, _ = fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", s.lineNum+1, string(currChar))
-			lexErrFound = true
-			continue
+			return nil, fmt.Errorf("[line %d] Error: Unexpected character: %s\n", s.lineNum+1, string(currChar))
 		}
 
-		fmt.Println(currToken.String())
+		return &currToken, nil
 	}
+}
 
-	fmt.Println((&Token{
-		Type:    EOF,
-		Lexeme:  string(EOF),
-		Literal: "null",
-		Line:    s.lineNum,
-	}).String())
-
-	if lexErrFound {
-		os.Exit(65)
-	}
+func (s *Scanner) HasNext() bool {
+	return !s.done
 }
 
 func (s *Scanner) nextChar() (byte, bool) {
 	s.pos++
 
 	if s.pos >= len(s.content) {
+		s.pos = len(s.content)
 		return 0, false
 	}
 

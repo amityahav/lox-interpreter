@@ -6,7 +6,6 @@ import (
 )
 
 func main() {
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Fprintln(os.Stderr, "Logs from your program will appear here!")
 
 	if len(os.Args) < 3 {
@@ -29,5 +28,13 @@ func main() {
 	}
 
 	s := NewScanner(fileContents)
-	s.Scan()
+
+	for s.HasNext() {
+		token, err := s.NextToken()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, err.Error())
+		} else {
+			fmt.Println(token)
+		}
+	}
 }
