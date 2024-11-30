@@ -43,6 +43,10 @@ type BinaryExpr struct {
 	RightExpr Expression
 }
 
+func (be *BinaryExpr) String() string {
+	return fmt.Sprintf("(%s %s %s)", be.Operator, be.LeftExpr, be.RightExpr)
+}
+
 type GroupingExpr struct {
 	LeftParen  string
 	RightParen string
@@ -113,6 +117,24 @@ func (p *Parser) NextExpression() (Expression, error) {
 		currExpr = &ue
 	}
 
+	n, exists := p.peek()
+	if exists && isOperator(n) {
+		be := BinaryExpr{
+			Operator: string(n.Type),
+			LeftExpr: currExpr,
+		}
+
+		p.nextToken()
+
+		e, err := p.NextExpression()
+		if err != nil {
+			return nil, err
+		}
+
+		be.RightExpr = e
+		currExpr = &be
+	}
+
 	return currExpr, nil
 }
 
@@ -133,4 +155,13 @@ func (p *Parser) peek() (*Token, bool) {
 	}
 
 	return p.tokens[p.pos+1], true
+}
+
+func isOperator(token *Token) bool {
+	switch token.Type {
+	case PLUS, MINUS, STAR, EQUAL, EQUAL_EQUAL, BANG, BANG_EQUAL, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL, SLASH:
+		return true
+	}
+
+	return false
 }
