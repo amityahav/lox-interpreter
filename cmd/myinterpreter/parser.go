@@ -100,7 +100,10 @@ func (p *Parser) NextExpression() (Expression, error) {
 		// TODO: we get here if there's an empty group or an unbalanced parenthesis
 		return nil, fmt.Errorf("something")
 	case token.Type == BANG || token.Type == MINUS:
-		var ue UnaryExpr
+		ue := UnaryExpr{
+			Unary: string(token.Type),
+		}
+
 		e, err := p.NextExpression()
 		if err != nil {
 			return nil, err
