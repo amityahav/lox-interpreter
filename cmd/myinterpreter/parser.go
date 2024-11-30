@@ -71,7 +71,85 @@ func NewParser(tokens []*Token) *Parser {
 
 var ErrNoMoreTokens = fmt.Errorf("no more tokens")
 
-func (p *Parser) NextExpression() (Expression, error) {
+//	expression     → equality ;
+//	equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+//	comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+//	term           → factor ( ( "-" | "+" ) factor )* ;
+//	factor         → unary ( ( "/" | "*" ) unary )* ;
+//	unary          → ( "!" | "-" ) unary
+//					 | primary ;
+//	primary        → NUMBER | STRING | "true" | "false" | "nil"
+//					 | "(" expression ")" ;
+
+func (p *Parser) parseExpression() (Expression, error) {
+	return p.parseEquality()
+}
+
+func (p *Parser) parseEquality() (Expression, error) {
+	return p.parseComparison()
+}
+
+func (p *Parser) parseComparison() (Expression, error) {
+	return p.parseTerm()
+}
+
+func (p *Parser) parseTerm() (Expression, error) {
+	return p.parseFactor()
+}
+
+func (p *Parser) parseFactor() (Expression, error) {
+	e, err := p.parseUnary()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		token, ok := p.nextToken()
+		if !ok {
+			break
+		}
+
+		if token.Type == SLASH || token.Type == STAR {
+			rightExpr, err := p.parseUnary()
+			if err != nil {
+				return nil, err
+			}
+
+			e = &BinaryExpr{
+				Operator:  string(token.Type),
+				LeftExpr:  e,
+				RightExpr: rightExpr,
+			}
+		}
+	}
+
+	return e, nil
+}
+
+func (p *Parser) parseUnary() (Expression, error) {
+	token, ok := p.nextToken()
+	if !ok {
+		return nil, ErrNoMoreTokens
+	}
+
+	switch token.Type {
+	case BANG, MINUS:
+		u, err := p.parseUnary()
+		if err != nil {
+			return nil, err
+		}
+
+		return &UnaryExpr{
+			Unary: string(token.Type),
+			Expr:  u,
+		}, nil
+	}
+
+	p.goBack()
+	return p.parsePrimary()
+}
+
+func (p *Parser) parsePrimary() (Expression, error) {
 	var currExpr Expression
 
 	token, ok := p.nextToken()
@@ -86,7 +164,7 @@ func (p *Parser) NextExpression() (Expression, error) {
 		currExpr = &LiteralExpr{Literal: token.Literal}
 	case token.Type == LEFT_PAREN:
 		var ge GroupingExpr
-		e, err := p.NextExpression()
+		e, err := p.parseExpression()
 		if err != nil {
 			return nil, err
 		}
@@ -103,39 +181,13 @@ func (p *Parser) NextExpression() (Expression, error) {
 	case token.Type == RIGHT_PAREN:
 		// TODO: we get here if there's an empty group or an unbalanced parenthesis
 		return nil, fmt.Errorf("something")
-	case token.Type == BANG || token.Type == MINUS:
-		ue := UnaryExpr{
-			Unary: string(token.Type),
-		}
-
-		e, err := p.NextExpression()
-		if err != nil {
-			return nil, err
-		}
-
-		ue.Expr = e
-		currExpr = &ue
-	}
-
-	n, exists := p.peek()
-	if exists && isOperator(n) {
-		be := BinaryExpr{
-			Operator: string(n.Type),
-			LeftExpr: currExpr,
-		}
-
-		p.nextToken()
-
-		e, err := p.NextExpression()
-		if err != nil {
-			return nil, err
-		}
-
-		be.RightExpr = e
-		currExpr = &be
 	}
 
 	return currExpr, nil
+}
+
+func (p *Parser) NextExpression() (Expression, error) {
+	return p.parseExpression()
 }
 
 func (p *Parser) nextToken() (*Token, bool) {
@@ -155,6 +207,14 @@ func (p *Parser) peek() (*Token, bool) {
 	}
 
 	return p.tokens[p.pos+1], true
+}
+
+func (p *Parser) goBack() {
+	if p.pos == -1 {
+		return
+	}
+
+	p.pos--
 }
 
 func isOperator(token *Token) bool {
