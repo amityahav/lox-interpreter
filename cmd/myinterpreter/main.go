@@ -27,14 +27,21 @@ func main() {
 		os.Exit(1)
 	}
 
+	var errFound bool
+
 	s := NewScanner(fileContents)
 
 	for s.HasNext() {
 		token, err := s.NextToken()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, err.Error())
+			errFound = true
 		} else {
 			fmt.Println(token)
 		}
+	}
+
+	if errFound {
+		os.Exit(65)
 	}
 }
