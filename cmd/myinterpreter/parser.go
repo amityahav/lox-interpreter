@@ -219,29 +219,24 @@ func (p *Parser) parseSequence(parseFunc func() (Expression, error), matchers ..
 
 	for {
 		token, ok := p.nextToken()
-		if !ok {
+		if !ok || !slices.Contains(matchers, token.Type) {
 			break
 		}
 
-		if slices.Contains(matchers, token.Type) {
-			rightExpr, err := parseFunc()
-			if err != nil {
-				return nil, err
-			}
-
-			e = &BinaryExpr{
-				Operator:  string(token.Type),
-				LeftExpr:  e,
-				RightExpr: rightExpr,
-			}
-
-			continue
+		rightExpr, err := parseFunc()
+		if err != nil {
+			return nil, err
 		}
 
-		break
+		e = &BinaryExpr{
+			Operator:  string(token.Type),
+			LeftExpr:  e,
+			RightExpr: rightExpr,
+		}
 	}
 
 	p.goBack()
+
 	return e, nil
 }
 
@@ -281,6 +276,7 @@ func (p *Parser) parseUnary() (Expression, error) {
 	}
 
 	p.goBack()
+
 	return p.parsePrimary()
 }
 
