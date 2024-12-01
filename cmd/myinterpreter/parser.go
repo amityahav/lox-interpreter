@@ -92,7 +92,7 @@ func (be *BinaryExpr) Eval() (interface{}, error) {
 	case STAR:
 		lv, ok := leftVal.(float64)
 		rv, ok2 := rightVal.(float64)
-		if !ok || ok2 {
+		if !ok || !ok2 {
 			panic("not a num")
 		}
 
