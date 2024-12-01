@@ -70,6 +70,36 @@ type BinaryExpr struct {
 }
 
 func (be *BinaryExpr) Eval() (interface{}, error) {
+	leftVal, err := be.LeftExpr.Eval()
+	if err != nil {
+		return nil, err
+	}
+
+	rightVal, err := be.RightExpr.Eval()
+	if err != nil {
+		return nil, err
+	}
+
+	switch TokenType(be.Operator) {
+	case SLASH:
+		lv, ok := leftVal.(float64)
+		rv, ok2 := rightVal.(float64)
+		if !ok || ok2 {
+			panic("not a num")
+		}
+
+		return lv / rv, nil
+	case STAR:
+		lv, ok := leftVal.(float64)
+		rv, ok2 := rightVal.(float64)
+		if !ok || ok2 {
+			panic("not a num")
+		}
+
+		return lv * rv, nil
+	}
+
+	// unreachable
 	return nil, nil
 }
 
