@@ -123,6 +123,38 @@ func (be *BinaryExpr) Eval() (interface{}, error) {
 		}
 
 		return lv - rv, nil
+	case LESS:
+		lv, ok := leftVal.(float64)
+		rv, ok2 := rightVal.(float64)
+		if !ok || !ok2 {
+			panic("not a num")
+		}
+
+		return lv < rv, nil
+	case LESS_EQUAL:
+		lv, ok := leftVal.(float64)
+		rv, ok2 := rightVal.(float64)
+		if !ok || !ok2 {
+			panic("not a num")
+		}
+
+		return lv <= rv, nil
+	case GREATER:
+		lv, ok := leftVal.(float64)
+		rv, ok2 := rightVal.(float64)
+		if !ok || !ok2 {
+			panic("not a num")
+		}
+
+		return lv > rv, nil
+	case GREATER_EQUAL:
+		lv, ok := leftVal.(float64)
+		rv, ok2 := rightVal.(float64)
+		if !ok || !ok2 {
+			panic("not a num")
+		}
+
+		return lv >= rv, nil
 	}
 
 	// unreachable
