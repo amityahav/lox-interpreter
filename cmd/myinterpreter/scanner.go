@@ -191,73 +191,19 @@ func (s *Scanner) NextToken() (*Token, error) {
 			}
 
 			s.done = true
-		case TokenType(currChar) == LEFT_PAREN:
+		case TokenType(currChar) == LEFT_PAREN ||
+			TokenType(currChar) == RIGHT_PAREN ||
+			TokenType(currChar) == LEFT_BRACE ||
+			TokenType(currChar) == RIGHT_BRACE ||
+			TokenType(currChar) == COMMA ||
+			TokenType(currChar) == DOT ||
+			TokenType(currChar) == SEMICOLON ||
+			TokenType(currChar) == PLUS ||
+			TokenType(currChar) == MINUS ||
+			TokenType(currChar) == STAR:
 			currToken = Token{
-				Type:    LEFT_PAREN,
-				Lexeme:  string(LEFT_PAREN),
-				Literal: "null",
-				Line:    s.lineNum,
-			}
-		case TokenType(currChar) == RIGHT_PAREN:
-			currToken = Token{
-				Type:    RIGHT_PAREN,
-				Lexeme:  string(RIGHT_PAREN),
-				Literal: "null",
-				Line:    s.lineNum,
-			}
-		case TokenType(currChar) == LEFT_BRACE:
-			currToken = Token{
-				Type:    LEFT_BRACE,
-				Lexeme:  string(LEFT_BRACE),
-				Literal: "null",
-				Line:    s.lineNum,
-			}
-		case TokenType(currChar) == RIGHT_BRACE:
-			currToken = Token{
-				Type:    RIGHT_BRACE,
-				Lexeme:  string(RIGHT_BRACE),
-				Literal: "null",
-				Line:    s.lineNum,
-			}
-		case TokenType(currChar) == COMMA:
-			currToken = Token{
-				Type:    COMMA,
-				Lexeme:  string(COMMA),
-				Literal: "null",
-				Line:    s.lineNum,
-			}
-		case TokenType(currChar) == DOT:
-			currToken = Token{
-				Type:    DOT,
-				Lexeme:  string(DOT),
-				Literal: "null",
-				Line:    s.lineNum,
-			}
-		case TokenType(currChar) == SEMICOLON:
-			currToken = Token{
-				Type:    SEMICOLON,
-				Lexeme:  string(SEMICOLON),
-				Literal: "null",
-				Line:    s.lineNum,
-			}
-		case TokenType(currChar) == PLUS:
-			currToken = Token{
-				Type:    PLUS,
-				Lexeme:  string(PLUS),
-				Literal: "null",
-				Line:    s.lineNum,
-			}
-		case TokenType(currChar) == MINUS:
-			currToken = Token{
-				Type:    MINUS,
-				Lexeme:  string(MINUS),
-				Literal: "null",
-				Line:    s.lineNum,
-			}
-		case TokenType(currChar) == STAR:
-			currToken = Token{
-				Type:    STAR,
-				Lexeme:  string(STAR),
+				Type:    TokenType(currChar),
+				Lexeme:  string(currChar),
 				Literal: "null",
 				Line:    s.lineNum,
 			}
@@ -363,9 +309,8 @@ func (s *Scanner) NextToken() (*Token, error) {
 				Literal: "null",
 				Line:    s.lineNum,
 			}
-		case TokenType(currChar) == SPACE:
-			continue
-		case TokenType(currChar) == TAB:
+		case TokenType(currChar) == SPACE ||
+			TokenType(currChar) == TAB:
 			continue
 		case TokenType(currChar) == QUOTE:
 			currToken = Token{
@@ -441,7 +386,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 				s.nextChar()
 			}
 
-			if _, found := reservedWords[TokenType(currToken.Lexeme)]; found {
+			if _, isKeyword := reservedWords[TokenType(currToken.Lexeme)]; isKeyword {
 				currToken.Type = TokenType(currToken.Lexeme)
 			}
 		default:

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 )
 
 type Expression interface {
@@ -73,8 +74,8 @@ func (p *Parser) parseExpression() (Expression, error) {
 	return p.parseEquality()
 }
 
-func (p *Parser) parseEquality() (Expression, error) {
-	e, err := p.parseComparison()
+func (p *Parser) parseSequence(parseFunc func() (Expression, error), matchers ...TokenType) (Expression, error) {
+	e, err := parseFunc()
 	if err != nil {
 		return nil, err
 	}
@@ -85,9 +86,8 @@ func (p *Parser) parseEquality() (Expression, error) {
 			break
 		}
 
-		switch token.Type {
-		case BANG_EQUAL, EQUAL_EQUAL:
-			rightExpr, err := p.parseComparison()
+		if slices.Contains(matchers, token.Type) {
+			rightExpr, err := parseFunc()
 			if err != nil {
 				return nil, err
 			}
@@ -106,111 +106,22 @@ func (p *Parser) parseEquality() (Expression, error) {
 
 	p.goBack()
 	return e, nil
+}
+
+func (p *Parser) parseEquality() (Expression, error) {
+	return p.parseSequence(p.parseComparison, BANG_EQUAL, EQUAL_EQUAL)
 }
 
 func (p *Parser) parseComparison() (Expression, error) {
-	e, err := p.parseTerm()
-	if err != nil {
-		return nil, err
-	}
-
-	for {
-		token, ok := p.nextToken()
-		if !ok {
-			break
-		}
-
-		switch token.Type {
-		case LESS, LESS_EQUAL, GREATER, GREATER_EQUAL:
-			rightExpr, err := p.parseTerm()
-			if err != nil {
-				return nil, err
-			}
-
-			e = &BinaryExpr{
-				Operator:  string(token.Type),
-				LeftExpr:  e,
-				RightExpr: rightExpr,
-			}
-
-			continue
-		}
-
-		break
-	}
-
-	p.goBack()
-	return e, nil
+	return p.parseSequence(p.parseTerm, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL)
 }
 
 func (p *Parser) parseTerm() (Expression, error) {
-	e, err := p.parseFactor()
-	if err != nil {
-		return nil, err
-	}
-
-	for {
-		token, ok := p.nextToken()
-		if !ok {
-			break
-		}
-
-		switch token.Type {
-		case PLUS, MINUS:
-			rightExpr, err := p.parseFactor()
-			if err != nil {
-				return nil, err
-			}
-
-			e = &BinaryExpr{
-				Operator:  string(token.Type),
-				LeftExpr:  e,
-				RightExpr: rightExpr,
-			}
-
-			continue
-		}
-
-		break
-	}
-
-	p.goBack()
-	return e, nil
+	return p.parseSequence(p.parseFactor, PLUS, MINUS)
 }
 
 func (p *Parser) parseFactor() (Expression, error) {
-	e, err := p.parseUnary()
-	if err != nil {
-		return nil, err
-	}
-
-	for {
-		token, ok := p.nextToken()
-		if !ok {
-			break
-		}
-
-		switch token.Type {
-		case SLASH, STAR:
-			rightExpr, err := p.parseUnary()
-			if err != nil {
-				return nil, err
-			}
-
-			e = &BinaryExpr{
-				Operator:  string(token.Type),
-				LeftExpr:  e,
-				RightExpr: rightExpr,
-			}
-
-			continue
-		}
-
-		break
-	}
-
-	p.goBack()
-	return e, nil
+	return p.parseSequence(p.parseUnary, SLASH, STAR)
 }
 
 func (p *Parser) parseUnary() (Expression, error) {
@@ -255,12 +166,11 @@ func (p *Parser) parsePrimary() (Expression, error) {
 			return nil, err
 		}
 
-		n, exists := p.peek()
+		n, exists := p.nextToken()
 		if !exists || n.Type != RIGHT_PAREN {
 			return nil, fmt.Errorf("unbalanced parenthesis")
 		}
 
-		p.nextToken()
 		currExpr = &GroupingExpr{Expr: e}
 	case token.Type == RIGHT_PAREN:
 		// TODO: we get here if there's an empty group or an unbalanced parenthesis
@@ -279,14 +189,6 @@ func (p *Parser) nextToken() (*Token, bool) {
 	}
 
 	return p.tokens[p.pos], true
-}
-
-func (p *Parser) peek() (*Token, bool) {
-	if p.pos+1 >= len(p.tokens)-1 {
-		return nil, false
-	}
-
-	return p.tokens[p.pos+1], true
 }
 
 func (p *Parser) goBack() {
