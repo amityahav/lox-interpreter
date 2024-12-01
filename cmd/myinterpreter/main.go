@@ -56,7 +56,16 @@ func main() {
 
 		p := NewParser(tokens)
 		for expr, err := p.NextExpression(); !errors.Is(err, ErrNoMoreTokens); expr, err = p.NextExpression() {
-			fmt.Println(expr.String())
+			if err != nil {
+				errFound = true
+				fmt.Fprintln(os.Stderr, err.Error()+"\n")
+			} else {
+				fmt.Println(expr.String())
+			}
+		}
+
+		if errFound {
+			os.Exit(65)
 		}
 	}
 }
