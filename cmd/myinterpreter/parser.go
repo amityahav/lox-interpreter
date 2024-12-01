@@ -155,6 +155,10 @@ func (be *BinaryExpr) Eval() (interface{}, error) {
 		}
 
 		return lv >= rv, nil
+	case EQUAL_EQUAL:
+		return leftVal == rightVal, nil
+	case BANG_EQUAL:
+		return leftVal != rightVal, nil
 	}
 
 	// unreachable
