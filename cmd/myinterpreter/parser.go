@@ -64,7 +64,7 @@ type GroupingExpr struct {
 }
 
 func (ge *GroupingExpr) Eval() (interface{}, error) {
-	return nil, nil
+	return ge.Expr.Eval()
 }
 
 func (ge *GroupingExpr) String() string {
