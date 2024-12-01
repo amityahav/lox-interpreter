@@ -105,11 +105,11 @@ func strHelper(v interface{}) string {
 		return "nil"
 	}
 
-	if v, ok := v.(float64); ok {
-		if v == float64(int64(v)) {
-			return fmt.Sprintf("%.1f", v)
-		}
-	}
+	//if v, ok := v.(float64); ok {
+	//	if v == float64(int64(v)) {
+	//		return fmt.Sprintf("%.1f", v)
+	//	}
+	//}
 
 	return fmt.Sprintf("%v", v)
 }
