@@ -38,6 +38,24 @@ type UnaryExpr struct {
 }
 
 func (ue *UnaryExpr) Eval() (interface{}, error) {
+	val, err := ue.Expr.Eval()
+	if err != nil {
+		return nil, err
+	}
+
+	switch TokenType(ue.Unary) {
+	case MINUS:
+		v, ok := val.(float64)
+		if !ok {
+			panic("not a num")
+		}
+
+		return -v, nil
+	case BANG:
+		return !isTrue(val), nil
+	}
+
+	// unreachable
 	return nil, nil
 }
 
@@ -227,6 +245,18 @@ func (p *Parser) goBack() {
 	}
 
 	p.pos--
+}
+
+func isTrue(val interface{}) bool {
+	if val == nil {
+		return false
+	}
+
+	if v, ok := val.(bool); ok {
+		return v
+	}
+
+	return true
 }
 
 var ErrNoMoreTokens = fmt.Errorf("no more tokens")
