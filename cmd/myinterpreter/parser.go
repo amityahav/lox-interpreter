@@ -172,9 +172,12 @@ func (p *Parser) parsePrimary() (Expression, error) {
 		}
 
 		currExpr = &GroupingExpr{Expr: e}
-	case token.Type == RIGHT_PAREN:
-		// TODO: we get here if there's an empty group or an unbalanced parenthesis
-		return nil, fmt.Errorf("something")
+	//case token.Type == RIGHT_PAREN:
+	//	// TODO: we get here if there's an empty group or an unbalanced parenthesis
+	//	return nil, fmt.Errorf("something")
+	//}
+	default:
+		return nil, fmt.Errorf("[line %d] Error at '%s': Expect expression.", token.Line+1, token.Lexeme)
 	}
 
 	return currExpr, nil
