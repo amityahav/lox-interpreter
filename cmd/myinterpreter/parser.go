@@ -6,20 +6,39 @@ import (
 )
 
 type Expression interface {
+	Eval() (interface{}, error)
 	String() string
 }
 
 type LiteralExpr struct {
-	Literal string
+	Literal interface{}
+}
+
+func (le *LiteralExpr) Eval() (interface{}, error) {
+	return le.Literal, nil
 }
 
 func (le *LiteralExpr) String() string {
-	return le.Literal
+	if le.Literal == nil {
+		return "nil"
+	}
+
+	if v, ok := le.Literal.(float64); ok {
+		if v == float64(int64(v)) {
+			return fmt.Sprintf("%.1f", v)
+		}
+	}
+
+	return fmt.Sprintf("%v", le.Literal)
 }
 
 type UnaryExpr struct {
 	Unary string
 	Expr  Expression
+}
+
+func (ue *UnaryExpr) Eval() (interface{}, error) {
+	return nil, nil
 }
 
 func (ue *UnaryExpr) String() string {
@@ -32,12 +51,20 @@ type BinaryExpr struct {
 	RightExpr Expression
 }
 
+func (be *BinaryExpr) Eval() (interface{}, error) {
+	return nil, nil
+}
+
 func (be *BinaryExpr) String() string {
 	return fmt.Sprintf("(%s %s %s)", be.Operator, be.LeftExpr, be.RightExpr)
 }
 
 type GroupingExpr struct {
 	Expr Expression
+}
+
+func (ge *GroupingExpr) Eval() (interface{}, error) {
+	return nil, nil
 }
 
 func (ge *GroupingExpr) String() string {
@@ -156,8 +183,12 @@ func (p *Parser) parsePrimary() (Expression, error) {
 	}
 
 	switch {
-	case token.Lexeme == "true" || token.Lexeme == "false" || token.Lexeme == "nil":
-		currExpr = &LiteralExpr{Literal: token.Lexeme}
+	case token.Lexeme == "true":
+		currExpr = &LiteralExpr{Literal: true}
+	case token.Lexeme == "false":
+		currExpr = &LiteralExpr{Literal: false}
+	case token.Lexeme == "nil":
+		currExpr = &LiteralExpr{Literal: nil}
 	case token.Type == NUMBER || token.Type == STRING:
 		currExpr = &LiteralExpr{Literal: token.Literal}
 	case token.Type == LEFT_PAREN:
@@ -168,14 +199,10 @@ func (p *Parser) parsePrimary() (Expression, error) {
 
 		n, exists := p.nextToken()
 		if !exists || n.Type != RIGHT_PAREN {
-			return nil, fmt.Errorf("unbalanced parenthesis")
+			return nil, fmt.Errorf("[line %s] Unbalanced parentheses.", token.Line+1)
 		}
 
 		currExpr = &GroupingExpr{Expr: e}
-	//case token.Type == RIGHT_PAREN:
-	//	// TODO: we get here if there's an empty group or an unbalanced parenthesis
-	//	return nil, fmt.Errorf("something")
-	//}
 	default:
 		return nil, fmt.Errorf("[line %d] Error at '%s': Expect expression.", token.Line+1, token.Lexeme)
 	}

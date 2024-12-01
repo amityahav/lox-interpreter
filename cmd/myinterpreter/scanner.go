@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"strings"
+	"strconv"
 )
 
 type TokenType string
@@ -143,7 +143,6 @@ func (t TokenType) Type() string {
 		return "VAR"
 	case "while":
 		return "WHILE"
-
 	default:
 		return ""
 	}
@@ -152,12 +151,12 @@ func (t TokenType) Type() string {
 type Token struct {
 	Type    TokenType
 	Lexeme  string
-	Literal string
+	Literal interface{}
 	Line    int
 }
 
 func (t *Token) String() string {
-	return fmt.Sprintf("%s %s %s", t.Type.Type(), t.Lexeme, t.Literal)
+	return fmt.Sprintf("%s %s %v", t.Type.Type(), t.Lexeme, stringifyNumOrNil(t))
 }
 
 type Scanner struct {
@@ -186,7 +185,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 			currToken = Token{
 				Type:    EOF,
 				Lexeme:  string(EOF),
-				Literal: "null",
+				Literal: nil,
 				Line:    s.lineNum,
 			}
 
@@ -204,7 +203,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 			currToken = Token{
 				Type:    TokenType(currChar),
 				Lexeme:  string(currChar),
-				Literal: "null",
+				Literal: nil,
 				Line:    s.lineNum,
 			}
 		case TokenType(currChar) == NEWLINE:
@@ -215,7 +214,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 				currToken = Token{
 					Type:    EQUAL_EQUAL,
 					Lexeme:  string(EQUAL_EQUAL),
-					Literal: "null",
+					Literal: nil,
 					Line:    s.lineNum,
 				}
 
@@ -226,7 +225,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 			currToken = Token{
 				Type:    EQUAL,
 				Lexeme:  string(EQUAL),
-				Literal: "null",
+				Literal: nil,
 				Line:    s.lineNum,
 			}
 		case TokenType(currChar) == BANG:
@@ -234,7 +233,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 				currToken = Token{
 					Type:    BANG_EQUAL,
 					Lexeme:  string(BANG_EQUAL),
-					Literal: "null",
+					Literal: nil,
 					Line:    s.lineNum,
 				}
 
@@ -245,7 +244,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 			currToken = Token{
 				Type:    BANG,
 				Lexeme:  string(BANG),
-				Literal: "null",
+				Literal: nil,
 				Line:    s.lineNum,
 			}
 		case TokenType(currChar) == LESS:
@@ -253,7 +252,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 				currToken = Token{
 					Type:    LESS_EQUAL,
 					Lexeme:  string(LESS_EQUAL),
-					Literal: "null",
+					Literal: nil,
 					Line:    s.lineNum,
 				}
 
@@ -264,7 +263,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 			currToken = Token{
 				Type:    LESS,
 				Lexeme:  string(LESS),
-				Literal: "null",
+				Literal: nil,
 				Line:    s.lineNum,
 			}
 		case TokenType(currChar) == GREATER:
@@ -272,7 +271,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 				currToken = Token{
 					Type:    GREATER_EQUAL,
 					Lexeme:  string(GREATER_EQUAL),
-					Literal: "null",
+					Literal: nil,
 					Line:    s.lineNum,
 				}
 
@@ -306,7 +305,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 			currToken = Token{
 				Type:    SLASH,
 				Lexeme:  string(SLASH),
-				Literal: "null",
+				Literal: nil,
 				Line:    s.lineNum,
 			}
 		case TokenType(currChar) == SPACE ||
@@ -318,6 +317,8 @@ func (s *Scanner) NextToken() (*Token, error) {
 				Line: s.lineNum,
 			}
 
+			var str string
+
 			for {
 				n, e := s.peek()
 				if !e {
@@ -325,12 +326,13 @@ func (s *Scanner) NextToken() (*Token, error) {
 				}
 
 				if TokenType(n) == QUOTE {
-					currToken.Lexeme = fmt.Sprintf("\"%s\"", currToken.Literal)
+					currToken.Lexeme = fmt.Sprintf("\"%s\"", str)
+					currToken.Literal = str
 					s.nextChar()
 					break
 				}
 
-				currToken.Literal += string(n)
+				str += string(n)
 
 				s.nextChar()
 			}
@@ -352,25 +354,17 @@ func (s *Scanner) NextToken() (*Token, error) {
 				s.nextChar()
 			}
 
-			currToken.Literal = currToken.Lexeme
-			if !strings.Contains(currToken.Literal, ".") {
-				currToken.Literal = fmt.Sprintf("%s.0", currToken.Literal)
-			} else {
-				idx := strings.Index(currToken.Literal, ".")
+			num, err := strconv.ParseFloat(currToken.Lexeme, 64)
+			if err != nil {
 
-				var i int
-				for i = len(currToken.Literal) - 1; i > idx && currToken.Literal[i] == '0'; i-- {
-				}
-
-				currToken.Literal = currToken.Literal[:i+1]
-				if i == idx {
-					currToken.Literal = fmt.Sprintf("%s0", currToken.Literal)
-				}
+				return nil, err
 			}
+
+			currToken.Literal = num
 		case isAlphabet(currChar) || currChar == '_':
 			currToken = Token{
 				Type:    IDENTIFIER,
-				Literal: "null",
+				Literal: nil,
 				Lexeme:  string(currChar),
 				Line:    s.lineNum,
 			}
@@ -433,4 +427,18 @@ func isAlphabet(b byte) bool {
 
 func isAlphaNumeric(b byte) bool {
 	return isAlphabet(b) || isNumeric(b)
+}
+
+func stringifyNumOrNil(token *Token) string {
+	if token.Literal == nil {
+		return "null"
+	}
+
+	if v, ok := token.Literal.(float64); ok {
+		if v == float64(int64(v)) {
+			return fmt.Sprintf("%.1f", v)
+		}
+	}
+
+	return fmt.Sprintf("%v", token.Literal)
 }

@@ -67,5 +67,49 @@ func main() {
 		if errFound {
 			os.Exit(65)
 		}
+	} else if command == "evaluate" {
+		s := NewScanner(fileContents)
+		for s.HasNext() {
+			token, err := s.NextToken()
+			if err != nil {
+				errFound = true
+			} else {
+				tokens = append(tokens, token)
+			}
+		}
+
+		p := NewParser(tokens)
+		for expr, err := p.NextExpression(); !errors.Is(err, ErrNoMoreTokens); expr, err = p.NextExpression() {
+			if err != nil {
+				errFound = true
+				fmt.Fprintln(os.Stderr, err.Error()+"\n")
+			} else {
+				v, err := expr.Eval()
+				if err != nil {
+					errFound = true
+					fmt.Fprintln(os.Stderr, err.Error()+"\n")
+				}
+
+				fmt.Println(strHelper(v))
+			}
+		}
+
+		if errFound {
+			os.Exit(65)
+		}
 	}
+}
+
+func strHelper(v interface{}) string {
+	if v == nil {
+		return "nil"
+	}
+
+	if v, ok := v.(float64); ok {
+		if v == float64(int64(v)) {
+			return fmt.Sprintf("%.1f", v)
+		}
+	}
+
+	return fmt.Sprintf("%v", v)
 }
