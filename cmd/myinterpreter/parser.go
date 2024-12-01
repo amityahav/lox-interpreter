@@ -97,6 +97,22 @@ func (be *BinaryExpr) Eval() (interface{}, error) {
 		}
 
 		return lv * rv, nil
+	case PLUS:
+		lv, ok := leftVal.(float64)
+		rv, ok2 := rightVal.(float64)
+		if !ok || !ok2 {
+			panic("not a num")
+		}
+
+		return lv + rv, nil
+	case MINUS:
+		lv, ok := leftVal.(float64)
+		rv, ok2 := rightVal.(float64)
+		if !ok || !ok2 {
+			panic("not a num")
+		}
+
+		return lv - rv, nil
 	}
 
 	// unreachable
