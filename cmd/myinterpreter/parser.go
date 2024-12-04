@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 	"slices"
 )
 
@@ -117,23 +118,26 @@ func (be *BinaryExpr) Eval() (interface{}, error) {
 			return lv >= rv, nil
 		}
 	case PLUS:
+		t1 := reflect.TypeOf(leftVal).Kind()
+		t2 := reflect.TypeOf(rightVal).Kind()
+
+		if (t1 != reflect.Float64 && t1 != reflect.String) ||
+			(t2 != reflect.Float64 && t2 != reflect.String) ||
+			(t1 != t2) {
+			return nil, fmt.Errorf("Operands must be two numbers or two strings.\n[line %d]", be.Line)
+		}
+
 		lv, ok := leftVal.(float64)
 		if ok {
-			rv, ok2 := rightVal.(float64)
-			if ok2 {
-				return lv + rv, nil
-			}
+			rv, _ := rightVal.(float64)
+			return lv + rv, nil
 		}
 
 		lvs, ok := leftVal.(string)
 		if ok {
-			rvs, ok2 := rightVal.(string)
-			if ok2 {
-				return lvs + rvs, nil
-			}
+			rvs, _ := rightVal.(string)
+			return lvs + rvs, nil
 		}
-
-		panic("err")
 	case EQUAL_EQUAL:
 		return leftVal == rightVal, nil
 	case BANG_EQUAL:
