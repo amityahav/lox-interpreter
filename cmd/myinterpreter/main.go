@@ -88,6 +88,7 @@ func main() {
 				if err != nil {
 					errFound = true
 					fmt.Fprintln(os.Stderr, err.Error()+"\n")
+					os.Exit(70)
 				}
 
 				fmt.Println(strHelper(v))

@@ -7,15 +7,21 @@ import (
 
 type Expression interface {
 	Eval() (interface{}, error)
+	LineNum() int
 	String() string
 }
 
 type LiteralExpr struct {
 	Literal interface{}
+	Line    int
 }
 
 func (le *LiteralExpr) Eval() (interface{}, error) {
 	return le.Literal, nil
+}
+
+func (le *LiteralExpr) LineNum() int {
+	return le.Line
 }
 
 func (le *LiteralExpr) String() string {
@@ -35,6 +41,7 @@ func (le *LiteralExpr) String() string {
 type UnaryExpr struct {
 	Unary string
 	Expr  Expression
+	Line  int
 }
 
 func (ue *UnaryExpr) Eval() (interface{}, error) {
@@ -47,7 +54,7 @@ func (ue *UnaryExpr) Eval() (interface{}, error) {
 	case MINUS:
 		v, ok := val.(float64)
 		if !ok {
-			panic("not a num")
+			return nil, fmt.Errorf("Operand must be a number.\n[line %d]", ue.Line)
 		}
 
 		return -v, nil
@@ -57,6 +64,10 @@ func (ue *UnaryExpr) Eval() (interface{}, error) {
 
 	// unreachable
 	return nil, nil
+}
+
+func (ue *UnaryExpr) LineNum() int {
+	return ue.Line
 }
 
 func (ue *UnaryExpr) String() string {
@@ -165,16 +176,25 @@ func (be *BinaryExpr) Eval() (interface{}, error) {
 	return nil, nil
 }
 
+func (be *BinaryExpr) LineNum() int {
+	return 0
+}
+
 func (be *BinaryExpr) String() string {
 	return fmt.Sprintf("(%s %s %s)", be.Operator, be.LeftExpr, be.RightExpr)
 }
 
 type GroupingExpr struct {
 	Expr Expression
+	Line int
 }
 
 func (ge *GroupingExpr) Eval() (interface{}, error) {
 	return ge.Expr.Eval()
+}
+
+func (ge *GroupingExpr) LineNum() int {
+	return 0
 }
 
 func (ge *GroupingExpr) String() string {
@@ -290,13 +310,13 @@ func (p *Parser) parsePrimary() (Expression, error) {
 
 	switch {
 	case token.Lexeme == "true":
-		currExpr = &LiteralExpr{Literal: true}
+		currExpr = &LiteralExpr{Literal: true, Line: token.Line}
 	case token.Lexeme == "false":
-		currExpr = &LiteralExpr{Literal: false}
+		currExpr = &LiteralExpr{Literal: false, Line: token.Line}
 	case token.Lexeme == "nil":
 		currExpr = &LiteralExpr{Literal: nil}
 	case token.Type == NUMBER || token.Type == STRING:
-		currExpr = &LiteralExpr{Literal: token.Literal}
+		currExpr = &LiteralExpr{Literal: token.Literal, Line: token.Line}
 	case token.Type == LEFT_PAREN:
 		e, err := p.parseExpression()
 		if err != nil {
@@ -308,7 +328,7 @@ func (p *Parser) parsePrimary() (Expression, error) {
 			return nil, fmt.Errorf("[line %s] Unbalanced parentheses.", token.Line+1)
 		}
 
-		currExpr = &GroupingExpr{Expr: e}
+		currExpr = &GroupingExpr{Expr: e, Line: token.Line}
 	default:
 		return nil, fmt.Errorf("[line %d] Error at '%s': Expect expression.", token.Line+1, token.Lexeme)
 	}
