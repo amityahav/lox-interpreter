@@ -78,6 +78,7 @@ type BinaryExpr struct {
 	Operator  string
 	LeftExpr  Expression
 	RightExpr Expression
+	Line      int
 }
 
 func (be *BinaryExpr) Eval() (interface{}, error) {
@@ -92,22 +93,29 @@ func (be *BinaryExpr) Eval() (interface{}, error) {
 	}
 
 	switch TokenType(be.Operator) {
-	case SLASH:
+	case SLASH, STAR, MINUS, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL:
 		lv, ok := leftVal.(float64)
 		rv, ok2 := rightVal.(float64)
 		if !ok || !ok2 {
-			panic("not a num")
+			return nil, fmt.Errorf("Operands must be numbers.\n[line %d]", be.Line)
 		}
 
-		return lv / rv, nil
-	case STAR:
-		lv, ok := leftVal.(float64)
-		rv, ok2 := rightVal.(float64)
-		if !ok || !ok2 {
-			panic("not a num")
+		switch TokenType(be.Operator) {
+		case SLASH:
+			return lv / rv, nil
+		case STAR:
+			return lv * rv, nil
+		case MINUS:
+			return lv - rv, nil
+		case LESS:
+			return lv < rv, nil
+		case LESS_EQUAL:
+			return lv <= rv, nil
+		case GREATER:
+			return lv > rv, nil
+		case GREATER_EQUAL:
+			return lv >= rv, nil
 		}
-
-		return lv * rv, nil
 	case PLUS:
 		lv, ok := leftVal.(float64)
 		if ok {
@@ -126,46 +134,6 @@ func (be *BinaryExpr) Eval() (interface{}, error) {
 		}
 
 		panic("err")
-	case MINUS:
-		lv, ok := leftVal.(float64)
-		rv, ok2 := rightVal.(float64)
-		if !ok || !ok2 {
-			panic("not a num")
-		}
-
-		return lv - rv, nil
-	case LESS:
-		lv, ok := leftVal.(float64)
-		rv, ok2 := rightVal.(float64)
-		if !ok || !ok2 {
-			panic("not a num")
-		}
-
-		return lv < rv, nil
-	case LESS_EQUAL:
-		lv, ok := leftVal.(float64)
-		rv, ok2 := rightVal.(float64)
-		if !ok || !ok2 {
-			panic("not a num")
-		}
-
-		return lv <= rv, nil
-	case GREATER:
-		lv, ok := leftVal.(float64)
-		rv, ok2 := rightVal.(float64)
-		if !ok || !ok2 {
-			panic("not a num")
-		}
-
-		return lv > rv, nil
-	case GREATER_EQUAL:
-		lv, ok := leftVal.(float64)
-		rv, ok2 := rightVal.(float64)
-		if !ok || !ok2 {
-			panic("not a num")
-		}
-
-		return lv >= rv, nil
 	case EQUAL_EQUAL:
 		return leftVal == rightVal, nil
 	case BANG_EQUAL:
@@ -252,6 +220,7 @@ func (p *Parser) parseSequence(parseFunc func() (Expression, error), matchers ..
 			Operator:  string(token.Type),
 			LeftExpr:  e,
 			RightExpr: rightExpr,
+			Line:      token.Line,
 		}
 	}
 
