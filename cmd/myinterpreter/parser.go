@@ -277,7 +277,7 @@ func (p *Parser) parsePrimary(state *State) (Expression, error) {
 		}
 
 		n, exists := p.nextToken()
-		if !exists || n.Type.Is(RIGHT_PAREN) {
+		if !exists || !n.Type.Is(RIGHT_PAREN) {
 			return nil, fmt.Errorf("[line %d] Unbalanced parentheses.", token.Line+1)
 		}
 
