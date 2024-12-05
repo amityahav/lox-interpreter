@@ -35,26 +35,42 @@ const (
 	NUMBER        TokenType = "<placeholder_num>"
 	QUOTE         TokenType = "\""
 	IDENTIFIER    TokenType = "<placeholder_identifier>"
+	AND           TokenType = "and"
+	CLASS         TokenType = "class"
+	ELSE          TokenType = "else"
+	FALSE         TokenType = "false"
+	FOR           TokenType = "for"
+	FUN           TokenType = "func"
+	IF            TokenType = "if"
+	NIL           TokenType = "nil"
+	OR            TokenType = "or"
+	PRINT         TokenType = "print"
+	RETURN        TokenType = "return"
+	SUPER         TokenType = "super"
+	THIS          TokenType = "this"
+	TRUE          TokenType = "true"
+	VAR           TokenType = "var"
+	WHILE         TokenType = "while"
 	EOF           TokenType = ""
 )
 
 var reservedWords = map[TokenType]struct{}{
-	"and":    {},
-	"class":  {},
-	"else":   {},
-	"false":  {},
-	"for":    {},
-	"fun":    {},
-	"if":     {},
-	"nil":    {},
-	"or":     {},
-	"print":  {},
-	"return": {},
-	"super":  {},
-	"this":   {},
-	"true":   {},
-	"var":    {},
-	"while":  {},
+	AND:    {},
+	CLASS:  {},
+	ELSE:   {},
+	FALSE:  {},
+	FOR:    {},
+	FUN:    {},
+	IF:     {},
+	NIL:    {},
+	OR:     {},
+	PRINT:  {},
+	RETURN: {},
+	SUPER:  {},
+	THIS:   {},
+	TRUE:   {},
+	VAR:    {},
+	WHILE:  {},
 }
 
 func (t TokenType) Type() string {
@@ -111,37 +127,37 @@ func (t TokenType) Type() string {
 		return "IDENTIFIER"
 	case EOF:
 		return "EOF"
-	case "and":
+	case AND:
 		return "AND"
-	case "class":
+	case CLASS:
 		return "CLASS"
-	case "else":
+	case ELSE:
 		return "ELSE"
-	case "false":
+	case FALSE:
 		return "FALSE"
-	case "for":
+	case FOR:
 		return "FOR"
-	case "fun":
+	case FUN:
 		return "FUN"
-	case "if":
+	case IF:
 		return "IF"
-	case "nil":
+	case NIL:
 		return "NIL"
-	case "or":
+	case OR:
 		return "OR"
-	case "print":
+	case PRINT:
 		return "PRINT"
-	case "return":
+	case RETURN:
 		return "RETURN"
-	case "super":
+	case SUPER:
 		return "SUPER"
-	case "this":
+	case THIS:
 		return "THIS"
-	case "true":
+	case TRUE:
 		return "TRUE"
-	case "var":
+	case VAR:
 		return "VAR"
-	case "while":
+	case WHILE:
 		return "WHILE"
 	default:
 		return ""

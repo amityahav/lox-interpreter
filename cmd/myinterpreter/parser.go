@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 )
@@ -44,7 +45,7 @@ func (p *Parser) parseStatement() (Statement, error) {
 		return nil, ErrNoMoreTokens
 	}
 
-	if token.Type == "print" {
+	if token.Type == PRINT {
 		return p.parsePrintStatement()
 	}
 
@@ -60,8 +61,12 @@ func (p *Parser) parsePrintStatement() (Statement, error) {
 	}
 
 	token, ok := p.nextToken()
-	if !ok || token.Type != SEMICOLON {
-		return nil, fmt.Errorf("expected semicolon")
+	if !ok {
+		return nil, fmt.Errorf("Error: Expected ';', got EOF.")
+	}
+
+	if token.Type != SEMICOLON {
+		return nil, fmt.Errorf("[line %d] Error: Expected ';'.", token.Line+1)
 	}
 
 	return &PrintStmt{Expr: expr}, nil
@@ -74,8 +79,12 @@ func (p *Parser) parseExprStatement() (Statement, error) {
 	}
 
 	token, ok := p.nextToken()
-	if !ok || token.Type != SEMICOLON {
-		return nil, fmt.Errorf("expected semicolon")
+	if !ok {
+		return nil, fmt.Errorf("Error: Expected ';', got EOF.")
+	}
+
+	if token.Type != SEMICOLON {
+		return nil, fmt.Errorf("[line %d] Error: Expected ';'.", token.Line+1)
 	}
 
 	return &ExprStmt{Expr: expr}, nil
@@ -145,6 +154,10 @@ func (p *Parser) parseUnary() (Expression, error) {
 	case BANG, MINUS:
 		u, err := p.parseUnary()
 		if err != nil {
+			if errors.Is(err, ErrNoMoreTokens) {
+				return nil, fmt.Errorf("[line %d] Error at '%s': Expect expression.", token.Line+1, token.Lexeme)
+			}
+
 			return nil, err
 		}
 
@@ -169,23 +182,27 @@ func (p *Parser) parsePrimary() (Expression, error) {
 	}
 
 	switch {
-	case token.Lexeme == "true":
+	case token.Type == TRUE:
 		currExpr = &LiteralExpr{Literal: true, Line: token.Line}
-	case token.Lexeme == "false":
+	case token.Type == FALSE:
 		currExpr = &LiteralExpr{Literal: false, Line: token.Line}
-	case token.Lexeme == "nil":
+	case token.Type == NIL:
 		currExpr = &LiteralExpr{Literal: nil, Line: token.Line}
 	case token.Type == NUMBER || token.Type == STRING:
 		currExpr = &LiteralExpr{Literal: token.Literal, Line: token.Line}
 	case token.Type == LEFT_PAREN:
 		e, err := p.parseExpression()
 		if err != nil {
+			if errors.Is(err, ErrNoMoreTokens) {
+				return nil, fmt.Errorf("[line %d] Unbalanced parentheses.", token.Line+1)
+			}
+
 			return nil, err
 		}
 
 		n, exists := p.nextToken()
 		if !exists || n.Type != RIGHT_PAREN {
-			return nil, fmt.Errorf("[line %s] Unbalanced parentheses.", token.Line+1)
+			return nil, fmt.Errorf("[line %d] Unbalanced parentheses.", token.Line+1)
 		}
 
 		currExpr = &GroupingExpr{Expr: e, Line: token.Line}

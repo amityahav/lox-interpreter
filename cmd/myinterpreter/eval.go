@@ -177,6 +177,11 @@ func (ps *PrintStmt) Execute() (interface{}, error) {
 		return nil, err
 	}
 
+	if val == nil {
+		fmt.Println("nil")
+		return nil, nil
+	}
+
 	fmt.Println(val)
 	return nil, nil
 }
