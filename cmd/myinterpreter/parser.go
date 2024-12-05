@@ -265,7 +265,7 @@ func (p *Parser) parsePrimary(state *State) (Expression, error) {
 	case token.Type.Is(NUMBER) || token.Type.Is(STRING):
 		currExpr = &LiteralExpr{Literal: token.Literal, Line: token.Line}
 	case token.Type.Is(IDENTIFIER):
-		currExpr = &IdentifierExpr{Name: token.Lexeme, state: state}
+		currExpr = &IdentifierExpr{Name: token.Lexeme, Line: token.Line, state: state}
 	case token.Type.Is(LEFT_PAREN):
 		e, err := p.parseExpression(state)
 		if err != nil {

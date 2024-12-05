@@ -157,6 +157,7 @@ func (ge *GroupingExpr) String() string {
 
 type IdentifierExpr struct {
 	Name string
+	Line int
 
 	state *State
 }
@@ -164,7 +165,7 @@ type IdentifierExpr struct {
 func (id *IdentifierExpr) Eval() (interface{}, error) {
 	val, ok := id.state.GetGlobal(id.Name)
 	if !ok {
-		panic("for now")
+		return nil, fmt.Errorf("Undefined variable '%s'.\n[line %d]", id.Name, id.Line)
 	}
 
 	return val, nil
