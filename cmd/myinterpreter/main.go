@@ -99,10 +99,7 @@ func main() {
 			os.Exit(65)
 		}
 	} else if command == "run" {
-		err = NewInterpreter().Interpret(fileContents)
-		if err != nil {
-			os.Exit(65)
-		}
+		_ = NewInterpreter().Interpret(fileContents)
 	}
 }
 

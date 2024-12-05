@@ -31,13 +31,13 @@ func (i *Interpreter) Interpret(content []byte) error {
 	for stmt, err := parser.NextStatement(); !errors.Is(err, ErrNoMoreTokens); stmt, err = parser.NextStatement() {
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, err.Error())
-			return err
+			os.Exit(65)
 		}
 
 		_, err = stmt.Execute()
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, err.Error())
-			return err
+			os.Exit(70)
 		}
 	}
 
