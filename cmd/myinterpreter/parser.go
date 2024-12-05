@@ -18,11 +18,13 @@ func NewParser(tokens []*Token) *Parser {
 	}
 }
 
-//	program        → statement* EOF ;
+//	program        → declaration* EOF ;
 //
+//	declaration    → varDecl
+//				     | statement ;
+//  varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 //	statement      → exprStmt
-//					 | printStmt ;
-//
+//				     | printStmt ;
 //	exprStmt       → expression ";" ;
 //	printStmt      → "print" expression ";" ;
 //	expression     → equality ;
@@ -32,30 +34,102 @@ func NewParser(tokens []*Token) *Parser {
 //	factor         → unary ( ( "/" | "*" ) unary )* ;
 //	unary          → ( "!" | "-" ) unary
 //					 | primary ;
-//	primary        → NUMBER | STRING | "true" | "false" | "nil"
-//					 | "(" expression ")" ;
+//	primary        → "true" | "false" | "nil"
+//					 | NUMBER | STRING
+//				     | "(" expression ")"
+//				     | IDENTIFIER ;
 
-func (p *Parser) NextStatement() (Statement, error) {
-	return p.parseStatement()
+func (p *Parser) NextDeclaration(state *State) (Statement, error) {
+	return p.parseDeclaration(state)
 }
 
-func (p *Parser) parseStatement() (Statement, error) {
+func (p *Parser) parseDeclaration(state *State) (Statement, error) {
 	token, ok := p.nextToken()
 	if !ok {
 		return nil, ErrNoMoreTokens
 	}
 
-	if token.Type == PRINT {
-		return p.parsePrintStatement()
+	if token.Type.Is(VAR) {
+		return p.parseVarDeclaration(state)
 	}
 
 	p.goBack()
 
-	return p.parseExprStatement()
+	return p.parseStatement(state)
 }
 
-func (p *Parser) parsePrintStatement() (Statement, error) {
-	expr, err := p.parseExpression()
+func (p *Parser) parseVarDeclaration(state *State) (Statement, error) {
+	token, ok := p.nextToken()
+	if !ok {
+		return nil, fmt.Errorf("Error: Expected IDENTIFIER, got EOF.")
+	}
+
+	if !token.Type.Is(IDENTIFIER) {
+		return nil, fmt.Errorf("[line %d] Error at '%s': Expected IDENTIFIER.", token.Line+1, token.Lexeme)
+	}
+
+	varName := token.Lexeme
+
+	token, ok = p.nextToken()
+	if !ok {
+		return nil, fmt.Errorf("Error: Expected ';', got EOF.")
+	}
+
+	if token.Type.Is(SEMICOLON) {
+		// uninitialized variable
+		return &VarDeclStmt{
+			Name:  varName,
+			Expr:  nil,
+			state: state,
+		}, nil
+	}
+
+	if !token.Type.Is(EQUAL) {
+		return nil, fmt.Errorf("[line %d] Error at '%s': Expected ';' or '='.", token.Line+1, token.Lexeme)
+	}
+
+	expr, err := p.parseExpression(state)
+	if err != nil {
+		if errors.Is(err, ErrNoMoreTokens) {
+			return nil, fmt.Errorf("[line %d] Error: Expected expression.", token.Line+1, token.Lexeme)
+		}
+
+		return nil, err
+	}
+
+	token, ok = p.nextToken()
+	if !ok {
+		return nil, fmt.Errorf("Error: Expected ';', got EOF.")
+	}
+
+	if !token.Type.Is(SEMICOLON) {
+		return nil, fmt.Errorf("[line %d] Error at '%s': Expected ';'.", token.Line+1, token.Lexeme)
+	}
+
+	return &VarDeclStmt{
+		Name:  varName,
+		Expr:  expr,
+		state: state,
+	}, nil
+}
+
+func (p *Parser) parseStatement(state *State) (Statement, error) {
+	token, ok := p.nextToken()
+	if !ok {
+		return nil, ErrNoMoreTokens
+	}
+
+	if token.Type.Is(PRINT) {
+		return p.parsePrintStatement(state)
+	}
+
+	p.goBack()
+
+	return p.parseExprStatement(state)
+}
+
+func (p *Parser) parsePrintStatement(state *State) (Statement, error) {
+	expr, err := p.parseExpression(state)
 	if err != nil {
 		return nil, err
 	}
@@ -65,15 +139,15 @@ func (p *Parser) parsePrintStatement() (Statement, error) {
 		return nil, fmt.Errorf("Error: Expected ';', got EOF.")
 	}
 
-	if token.Type != SEMICOLON {
+	if !token.Type.Is(SEMICOLON) {
 		return nil, fmt.Errorf("[line %d] Error: Expected ';'.", token.Line+1)
 	}
 
 	return &PrintStmt{Expr: expr}, nil
 }
 
-func (p *Parser) parseExprStatement() (Statement, error) {
-	expr, err := p.parseExpression()
+func (p *Parser) parseExprStatement(state *State) (Statement, error) {
+	expr, err := p.parseExpression(state)
 	if err != nil {
 		return nil, err
 	}
@@ -83,23 +157,23 @@ func (p *Parser) parseExprStatement() (Statement, error) {
 		return nil, fmt.Errorf("Error: Expected ';', got EOF.")
 	}
 
-	if token.Type != SEMICOLON {
+	if !token.Type.Is(SEMICOLON) {
 		return nil, fmt.Errorf("[line %d] Error: Expected ';'.", token.Line+1)
 	}
 
 	return &ExprStmt{Expr: expr}, nil
 }
 
-func (p *Parser) NextExpression() (Expression, error) {
-	return p.parseExpression()
+func (p *Parser) NextExpression(state *State) (Expression, error) {
+	return p.parseExpression(state)
 }
 
-func (p *Parser) parseExpression() (Expression, error) {
-	return p.parseEquality()
+func (p *Parser) parseExpression(state *State) (Expression, error) {
+	return p.parseEquality(state)
 }
 
-func (p *Parser) parseSequence(parseFunc func() (Expression, error), matchers ...TokenType) (Expression, error) {
-	e, err := parseFunc()
+func (p *Parser) parseSequence(state *State, parseFunc func(state *State) (Expression, error), matchers ...TokenType) (Expression, error) {
+	e, err := parseFunc(state)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +184,7 @@ func (p *Parser) parseSequence(parseFunc func() (Expression, error), matchers ..
 			break
 		}
 
-		rightExpr, err := parseFunc()
+		rightExpr, err := parseFunc(state)
 		if err != nil {
 			return nil, err
 		}
@@ -128,23 +202,23 @@ func (p *Parser) parseSequence(parseFunc func() (Expression, error), matchers ..
 	return e, nil
 }
 
-func (p *Parser) parseEquality() (Expression, error) {
-	return p.parseSequence(p.parseComparison, BANG_EQUAL, EQUAL_EQUAL)
+func (p *Parser) parseEquality(state *State) (Expression, error) {
+	return p.parseSequence(state, p.parseComparison, BANG_EQUAL, EQUAL_EQUAL)
 }
 
-func (p *Parser) parseComparison() (Expression, error) {
-	return p.parseSequence(p.parseTerm, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL)
+func (p *Parser) parseComparison(state *State) (Expression, error) {
+	return p.parseSequence(state, p.parseTerm, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL)
 }
 
-func (p *Parser) parseTerm() (Expression, error) {
-	return p.parseSequence(p.parseFactor, PLUS, MINUS)
+func (p *Parser) parseTerm(state *State) (Expression, error) {
+	return p.parseSequence(state, p.parseFactor, PLUS, MINUS)
 }
 
-func (p *Parser) parseFactor() (Expression, error) {
-	return p.parseSequence(p.parseUnary, SLASH, STAR)
+func (p *Parser) parseFactor(state *State) (Expression, error) {
+	return p.parseSequence(state, p.parseUnary, SLASH, STAR)
 }
 
-func (p *Parser) parseUnary() (Expression, error) {
+func (p *Parser) parseUnary(state *State) (Expression, error) {
 	token, ok := p.nextToken()
 	if !ok {
 		return nil, ErrNoMoreTokens
@@ -152,7 +226,7 @@ func (p *Parser) parseUnary() (Expression, error) {
 
 	switch token.Type {
 	case BANG, MINUS:
-		u, err := p.parseUnary()
+		u, err := p.parseUnary(state)
 		if err != nil {
 			if errors.Is(err, ErrNoMoreTokens) {
 				return nil, fmt.Errorf("[line %d] Error at '%s': Expect expression.", token.Line+1, token.Lexeme)
@@ -170,10 +244,10 @@ func (p *Parser) parseUnary() (Expression, error) {
 
 	p.goBack()
 
-	return p.parsePrimary()
+	return p.parsePrimary(state)
 }
 
-func (p *Parser) parsePrimary() (Expression, error) {
+func (p *Parser) parsePrimary(state *State) (Expression, error) {
 	var currExpr Expression
 
 	token, ok := p.nextToken()
@@ -182,16 +256,18 @@ func (p *Parser) parsePrimary() (Expression, error) {
 	}
 
 	switch {
-	case token.Type == TRUE:
+	case token.Type.Is(TRUE):
 		currExpr = &LiteralExpr{Literal: true, Line: token.Line}
-	case token.Type == FALSE:
+	case token.Type.Is(FALSE):
 		currExpr = &LiteralExpr{Literal: false, Line: token.Line}
-	case token.Type == NIL:
+	case token.Type.Is(NIL):
 		currExpr = &LiteralExpr{Literal: nil, Line: token.Line}
-	case token.Type == NUMBER || token.Type == STRING:
+	case token.Type.Is(NUMBER) || token.Type.Is(STRING):
 		currExpr = &LiteralExpr{Literal: token.Literal, Line: token.Line}
-	case token.Type == LEFT_PAREN:
-		e, err := p.parseExpression()
+	case token.Type.Is(IDENTIFIER):
+		currExpr = &IdentifierExpr{Name: token.Lexeme, state: state}
+	case token.Type.Is(LEFT_PAREN):
+		e, err := p.parseExpression(state)
 		if err != nil {
 			if errors.Is(err, ErrNoMoreTokens) {
 				return nil, fmt.Errorf("[line %d] Unbalanced parentheses.", token.Line+1)
@@ -201,7 +277,7 @@ func (p *Parser) parsePrimary() (Expression, error) {
 		}
 
 		n, exists := p.nextToken()
-		if !exists || n.Type != RIGHT_PAREN {
+		if !exists || n.Type.Is(RIGHT_PAREN) {
 			return nil, fmt.Errorf("[line %d] Unbalanced parentheses.", token.Line+1)
 		}
 

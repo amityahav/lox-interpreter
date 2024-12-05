@@ -155,8 +155,50 @@ func (ge *GroupingExpr) String() string {
 	return fmt.Sprintf("(group %s)", ge.Expr.String())
 }
 
+type IdentifierExpr struct {
+	Name string
+
+	state *State
+}
+
+func (id *IdentifierExpr) Eval() (interface{}, error) {
+	val, ok := id.state.GetGlobal(id.Name)
+	if !ok {
+		panic("for now")
+	}
+
+	return val, nil
+}
+
+func (id *IdentifierExpr) String() string {
+	return id.Name
+}
+
 type Statement interface {
 	Execute() (interface{}, error)
+}
+
+type VarDeclStmt struct {
+	Name string
+	Expr Expression
+
+	state *State
+}
+
+func (v *VarDeclStmt) Execute() (interface{}, error) {
+	if v.Expr == nil {
+		v.state.AddGlobal(v.Name, nil)
+		return nil, nil
+	}
+
+	val, err := v.Expr.Eval()
+	if err != nil {
+		return nil, err
+	}
+
+	v.state.AddGlobal(v.Name, val)
+
+	return nil, nil
 }
 
 type ExprStmt struct {
@@ -183,6 +225,7 @@ func (ps *PrintStmt) Execute() (interface{}, error) {
 	}
 
 	fmt.Println(val)
+
 	return nil, nil
 }
 

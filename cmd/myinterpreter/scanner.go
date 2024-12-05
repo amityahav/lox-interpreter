@@ -8,6 +8,8 @@ import (
 
 type TokenType string
 
+func (t TokenType) Is(t2 TokenType) bool { return t == t2 }
+
 const (
 	LEFT_PAREN    TokenType = "("
 	RIGHT_PAREN   TokenType = ")"
@@ -206,27 +208,27 @@ func (s *Scanner) NextToken() (*Token, error) {
 			}
 
 			s.done = true
-		case TokenType(currChar) == LEFT_PAREN ||
-			TokenType(currChar) == RIGHT_PAREN ||
-			TokenType(currChar) == LEFT_BRACE ||
-			TokenType(currChar) == RIGHT_BRACE ||
-			TokenType(currChar) == COMMA ||
-			TokenType(currChar) == DOT ||
-			TokenType(currChar) == SEMICOLON ||
-			TokenType(currChar) == PLUS ||
-			TokenType(currChar) == MINUS ||
-			TokenType(currChar) == STAR:
+		case TokenType(currChar).Is(LEFT_PAREN) ||
+			TokenType(currChar).Is(RIGHT_PAREN) ||
+			TokenType(currChar).Is(LEFT_BRACE) ||
+			TokenType(currChar).Is(RIGHT_BRACE) ||
+			TokenType(currChar).Is(COMMA) ||
+			TokenType(currChar).Is(DOT) ||
+			TokenType(currChar).Is(SEMICOLON) ||
+			TokenType(currChar).Is(PLUS) ||
+			TokenType(currChar).Is(MINUS) ||
+			TokenType(currChar).Is(STAR):
 			currToken = Token{
 				Type:    TokenType(currChar),
 				Lexeme:  string(currChar),
 				Literal: nil,
 				Line:    s.lineNum,
 			}
-		case TokenType(currChar) == NEWLINE:
+		case TokenType(currChar).Is(NEWLINE):
 			s.lineNum++
 			continue
-		case TokenType(currChar) == EQUAL:
-			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == EQUAL {
+		case TokenType(currChar).Is(EQUAL):
+			if nextChar, exist := s.peek(); exist && TokenType(nextChar).Is(EQUAL) {
 				currToken = Token{
 					Type:    EQUAL_EQUAL,
 					Lexeme:  string(EQUAL_EQUAL),
@@ -244,8 +246,8 @@ func (s *Scanner) NextToken() (*Token, error) {
 				Literal: nil,
 				Line:    s.lineNum,
 			}
-		case TokenType(currChar) == BANG:
-			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == EQUAL {
+		case TokenType(currChar).Is(BANG):
+			if nextChar, exist := s.peek(); exist && TokenType(nextChar).Is(EQUAL) {
 				currToken = Token{
 					Type:    BANG_EQUAL,
 					Lexeme:  string(BANG_EQUAL),
@@ -263,8 +265,8 @@ func (s *Scanner) NextToken() (*Token, error) {
 				Literal: nil,
 				Line:    s.lineNum,
 			}
-		case TokenType(currChar) == LESS:
-			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == EQUAL {
+		case TokenType(currChar).Is(LESS):
+			if nextChar, exist := s.peek(); exist && TokenType(nextChar).Is(EQUAL) {
 				currToken = Token{
 					Type:    LESS_EQUAL,
 					Lexeme:  string(LESS_EQUAL),
@@ -282,8 +284,8 @@ func (s *Scanner) NextToken() (*Token, error) {
 				Literal: nil,
 				Line:    s.lineNum,
 			}
-		case TokenType(currChar) == GREATER:
-			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == EQUAL {
+		case TokenType(currChar).Is(GREATER):
+			if nextChar, exist := s.peek(); exist && TokenType(nextChar).Is(EQUAL) {
 				currToken = Token{
 					Type:    GREATER_EQUAL,
 					Lexeme:  string(GREATER_EQUAL),
@@ -301,14 +303,14 @@ func (s *Scanner) NextToken() (*Token, error) {
 				Literal: "null",
 				Line:    s.lineNum,
 			}
-		case TokenType(currChar) == SLASH:
-			if nextChar, exist := s.peek(); exist && TokenType(nextChar) == SLASH {
+		case TokenType(currChar).Is(SLASH):
+			if nextChar, exist := s.peek(); exist && TokenType(nextChar).Is(SLASH) {
 				// comment encountered
 				s.nextChar()
 
 				for {
 					n, e := s.peek()
-					if !e || TokenType(n) == NEWLINE {
+					if !e || TokenType(n).Is(NEWLINE) {
 						break
 					}
 
@@ -324,10 +326,10 @@ func (s *Scanner) NextToken() (*Token, error) {
 				Literal: nil,
 				Line:    s.lineNum,
 			}
-		case TokenType(currChar) == SPACE ||
-			TokenType(currChar) == TAB:
+		case TokenType(currChar).Is(SPACE) ||
+			TokenType(currChar).Is(TAB):
 			continue
-		case TokenType(currChar) == QUOTE:
+		case TokenType(currChar).Is(QUOTE):
 			currToken = Token{
 				Type: STRING,
 				Line: s.lineNum,
@@ -341,7 +343,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 					return nil, fmt.Errorf("[line %d] Error: Unterminated string.", currToken.Line+1)
 				}
 
-				if TokenType(n) == QUOTE {
+				if TokenType(n).Is(QUOTE) {
 					currToken.Lexeme = fmt.Sprintf("\"%s\"", string(bytes))
 					currToken.Literal = string(bytes)
 					s.nextChar()
@@ -361,7 +363,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 
 			for {
 				n, e := s.peek()
-				if !e || (!isNumeric(n) && TokenType(n) != DOT) {
+				if !e || (!isNumeric(n) && !TokenType(n).Is(DOT)) {
 					break
 				}
 

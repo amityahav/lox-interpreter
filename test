@@ -1,2 +1,2 @@
-print "79" + "baz";
-print false * (18 + 84);
+var a = "foo";
+print a;

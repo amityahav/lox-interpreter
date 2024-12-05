@@ -55,7 +55,7 @@ func main() {
 		}
 
 		p := NewParser(tokens)
-		for expr, err := p.NextExpression(); !errors.Is(err, ErrNoMoreTokens); expr, err = p.NextExpression() {
+		for expr, err := p.NextExpression(nil); !errors.Is(err, ErrNoMoreTokens); expr, err = p.NextExpression(nil) {
 			if err != nil {
 				errFound = true
 				fmt.Fprintln(os.Stderr, err.Error()+"\n")
@@ -79,7 +79,7 @@ func main() {
 		}
 
 		p := NewParser(tokens)
-		for expr, err := p.NextExpression(); !errors.Is(err, ErrNoMoreTokens); expr, err = p.NextExpression() {
+		for expr, err := p.NextExpression(nil); !errors.Is(err, ErrNoMoreTokens); expr, err = p.NextExpression(nil) {
 			if err != nil {
 				errFound = true
 				fmt.Fprintln(os.Stderr, err.Error()+"\n")
