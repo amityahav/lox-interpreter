@@ -1,6 +1,10 @@
 package main
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+	"os"
+)
 
 type Interpreter struct {
 }
@@ -26,6 +30,7 @@ func (i *Interpreter) Interpret(content []byte) error {
 
 	for stmt, err := parser.NextStatement(); !errors.Is(err, ErrNoMoreTokens); stmt, err = parser.NextStatement() {
 		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, err.Error())
 			return err
 		}
 

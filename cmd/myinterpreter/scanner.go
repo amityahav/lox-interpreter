@@ -317,7 +317,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 				Line: s.lineNum,
 			}
 
-			var str string
+			var bytes []byte
 
 			for {
 				n, e := s.peek()
@@ -326,13 +326,13 @@ func (s *Scanner) NextToken() (*Token, error) {
 				}
 
 				if TokenType(n) == QUOTE {
-					currToken.Lexeme = fmt.Sprintf("\"%s\"", str)
-					currToken.Literal = str
+					currToken.Lexeme = fmt.Sprintf("\"%s\"", string(bytes))
+					currToken.Literal = string(bytes)
 					s.nextChar()
 					break
 				}
 
-				str += string(n)
+				bytes = append(bytes, n)
 
 				s.nextChar()
 			}
