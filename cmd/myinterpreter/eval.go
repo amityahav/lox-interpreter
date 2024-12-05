@@ -173,7 +173,7 @@ func (ps *PrintStmt) Execute() (interface{}, error) {
 		return nil, err
 	}
 
-	fmt.Printf("%q\n", val)
+	fmt.Println(val)
 	return nil, nil
 }
 
