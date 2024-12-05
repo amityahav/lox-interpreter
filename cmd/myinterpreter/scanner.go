@@ -42,7 +42,7 @@ const (
 	ELSE          TokenType = "else"
 	FALSE         TokenType = "false"
 	FOR           TokenType = "for"
-	FUN           TokenType = "func"
+	FUN           TokenType = "fun"
 	IF            TokenType = "if"
 	NIL           TokenType = "nil"
 	OR            TokenType = "or"
