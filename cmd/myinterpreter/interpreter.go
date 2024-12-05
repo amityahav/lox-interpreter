@@ -34,7 +34,11 @@ func (i *Interpreter) Interpret(content []byte) error {
 			return err
 		}
 
-		_, _ = stmt.Execute()
+		_, err = stmt.Execute()
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, err.Error())
+			return err
+		}
 	}
 
 	return nil

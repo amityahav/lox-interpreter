@@ -68,7 +68,17 @@ func (p *Parser) parsePrintStatement() (Statement, error) {
 }
 
 func (p *Parser) parseExprStatement() (Statement, error) {
-	return nil, nil
+	expr, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+
+	token, ok := p.nextToken()
+	if !ok || token.Type != SEMICOLON {
+		return nil, fmt.Errorf("expected semicolon")
+	}
+
+	return &ExprStmt{Expr: expr}, nil
 }
 
 func (p *Parser) NextExpression() (Expression, error) {

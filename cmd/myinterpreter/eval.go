@@ -163,6 +163,10 @@ type ExprStmt struct {
 	Expr Expression
 }
 
+func (es *ExprStmt) Execute() (interface{}, error) {
+	return es.Expr.Eval()
+}
+
 type PrintStmt struct {
 	Expr Expression
 }

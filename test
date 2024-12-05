@@ -1,1 +1,2 @@
-print "non-ascii: ॐ";
+print "79" + "baz";
+print false * (18 + 84);
