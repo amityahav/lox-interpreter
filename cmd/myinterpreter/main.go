@@ -98,6 +98,8 @@ func main() {
 		if errFound {
 			os.Exit(65)
 		}
+	} else if command == "run" {
+		_ = NewInterpreter().Interpret(fileContents)
 	}
 }
 
