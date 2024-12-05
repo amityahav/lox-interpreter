@@ -34,50 +34,9 @@ func NewParser(tokens []*Token) *Parser {
 //	primary        → NUMBER | STRING | "true" | "false" | "nil"
 //					 | "(" expression ")" ;
 
-func (p *Parser) NextExpression() (Expression, error) {
-	return p.parseExpression()
-}
-
-type Statement interface {
-	Execute() (interface{}, error)
-}
-
-type ExprStmt struct {
-	Expr Expression
-}
-
-type PrintStmt struct {
-	Expr Expression
-}
-
-func (ps *PrintStmt) Execute() (interface{}, error) {
-	val, err := ps.Expr.Eval()
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Println(val)
-	return nil, nil
-}
-
 func (p *Parser) NextStatement() (Statement, error) {
 	return p.parseStatement()
 }
-
-//func (p *Parser) parseProgram() ([]Statement, error) {
-//	var stmts []Statement
-//
-//	for {
-//		stmt, err := p.parseStatement()
-//		if err != nil {
-//			return nil, err
-//		}
-//
-//		stmts = append(stmts, stmt)
-//	}
-//
-//	return stmts, nil
-//}
 
 func (p *Parser) parseStatement() (Statement, error) {
 	token, ok := p.nextToken()
@@ -110,6 +69,10 @@ func (p *Parser) parsePrintStatement() (Statement, error) {
 
 func (p *Parser) parseExprStatement() (Statement, error) {
 	return nil, nil
+}
+
+func (p *Parser) NextExpression() (Expression, error) {
+	return p.parseExpression()
 }
 
 func (p *Parser) parseExpression() (Expression, error) {

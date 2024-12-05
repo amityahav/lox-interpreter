@@ -155,6 +155,28 @@ func (ge *GroupingExpr) String() string {
 	return fmt.Sprintf("(group %s)", ge.Expr.String())
 }
 
+type Statement interface {
+	Execute() (interface{}, error)
+}
+
+type ExprStmt struct {
+	Expr Expression
+}
+
+type PrintStmt struct {
+	Expr Expression
+}
+
+func (ps *PrintStmt) Execute() (interface{}, error) {
+	val, err := ps.Expr.Eval()
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("%q\n", val)
+	return nil, nil
+}
+
 func isTrue(val interface{}) bool {
 	if val == nil {
 		return false
