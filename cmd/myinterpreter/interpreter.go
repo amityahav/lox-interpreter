@@ -6,17 +6,44 @@ import (
 	"os"
 )
 
+type Scope struct {
+	Bindings map[string]interface{}
+}
+
+func (s *Scope) AddBinding(name string, value interface{}) {
+	s.Bindings[name] = value
+}
+
 type State struct {
-	Globals map[string]interface{}
+	Scopes []*Scope
 }
 
-func (s *State) AddGlobal(key string, value interface{}) {
-	s.Globals[key] = value
+func (s *State) GrowScopes() {
+	s.Scopes = append(s.Scopes, &Scope{make(map[string]interface{})})
 }
 
-func (s *State) GetGlobal(key string) (interface{}, bool) {
-	val, ok := s.Globals[key]
-	return val, ok
+func (s *State) GetInnermostScope() *Scope {
+	return s.Scopes[len(s.Scopes)-1]
+}
+
+func (s *State) CloseInnermostScope() {
+	if isGlobalScope := len(s.Scopes) == 1; isGlobalScope {
+		return
+	}
+
+	s.Scopes = s.Scopes[:len(s.Scopes)-1]
+}
+
+func (s *State) GetBinding(name string) (interface{}, bool) {
+	// search for the binding through all existing scopes, starting from the innermost one
+	for i := len(s.Scopes) - 1; i >= 0; i-- {
+		val, ok := s.Scopes[i].Bindings[name]
+		if ok {
+			return val, ok
+		}
+	}
+
+	return nil, false
 }
 
 type Interpreter struct {
@@ -25,7 +52,7 @@ type Interpreter struct {
 
 func NewInterpreter() *Interpreter {
 	return &Interpreter{
-		state: State{Globals: make(map[string]interface{})},
+		state: State{Scopes: []*Scope{{make(map[string]interface{})}}}, // first scope is the global scope
 	}
 }
 

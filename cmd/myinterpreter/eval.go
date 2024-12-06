@@ -163,7 +163,7 @@ type IdentifierExpr struct {
 }
 
 func (id *IdentifierExpr) Eval() (interface{}, error) {
-	val, ok := id.state.GetGlobal(id.Name)
+	val, ok := id.state.GetBinding(id.Name)
 	if !ok {
 		return nil, fmt.Errorf("Undefined variable '%s'.\n[line %d]", id.Name, id.Line)
 	}
@@ -183,12 +183,14 @@ type AssignmentExpr struct {
 }
 
 func (as *AssignmentExpr) Eval() (interface{}, error) {
+	scope := as.state.GetInnermostScope()
+
 	val, err := as.Expr.Eval()
 	if err != nil {
 		return nil, err
 	}
 
-	as.state.AddGlobal(as.Name, val)
+	scope.AddBinding(as.Name, val)
 
 	return val, nil
 }
@@ -209,8 +211,10 @@ type VarDeclStmt struct {
 }
 
 func (v *VarDeclStmt) Execute() (interface{}, error) {
+	scope := v.state.GetInnermostScope()
+
 	if v.Expr == nil {
-		v.state.AddGlobal(v.Name, nil)
+		scope.AddBinding(v.Name, nil)
 		return nil, nil
 	}
 
@@ -219,7 +223,7 @@ func (v *VarDeclStmt) Execute() (interface{}, error) {
 		return nil, err
 	}
 
-	v.state.AddGlobal(v.Name, val)
+	scope.AddBinding(v.Name, val)
 
 	return nil, nil
 }
@@ -254,9 +258,18 @@ func (ps *PrintStmt) Execute() (interface{}, error) {
 
 type BlockStatement struct {
 	Stmts []Statement
+
+	state *State
 }
 
 func (b *BlockStatement) Execute() (interface{}, error) {
+	// start a new scope
+	b.state.GrowScopes()
+	defer func() {
+		// close scope
+		b.state.CloseInnermostScope()
+	}()
+
 	for _, stmt := range b.Stmts {
 		_, err := stmt.Execute()
 		if err != nil {

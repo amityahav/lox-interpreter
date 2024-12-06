@@ -164,7 +164,9 @@ func (p *Parser) parseBlockStatement(state *State) (Statement, error) {
 		}
 
 		if token.Type.Is(RIGHT_BRACE) {
-			return &BlockStatement{Stmts: stmts}, nil
+			return &BlockStatement{
+				Stmts: stmts,
+				state: state}, nil
 		}
 
 		p.goBack()
