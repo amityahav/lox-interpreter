@@ -24,8 +24,12 @@ func NewParser(tokens []*Token) *Parser {
 //				     | statement ;
 //  varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 //	statement      → exprStmt
+//					 | ifStmt
 //					 | printStmt
-//					 | block ;
+//				     | block ;
+//
+//	ifStmt         → "if" "(" expression ")" statement
+//					 	    	( "else" statement )? ;
 //
 //	block          → "{" declaration* "}" ;
 //	exprStmt       → expression ";" ;
@@ -129,6 +133,8 @@ func (p *Parser) parseStatement(state *State) (Statement, error) {
 		return p.parsePrintStatement(state)
 	case LEFT_BRACE:
 		return p.parseBlockStatement(state)
+	case IF:
+		return p.parseIfStatement(state)
 	}
 
 	p.goBack()
@@ -178,6 +184,56 @@ func (p *Parser) parseBlockStatement(state *State) (Statement, error) {
 
 		stmts = append(stmts, stmt)
 	}
+}
+
+func (p *Parser) parseIfStatement(state *State) (Statement, error) {
+	token, ok := p.nextToken()
+	if !ok {
+		return nil, fmt.Errorf("Error: Expected '(', got EOF.")
+	}
+
+	if !token.Type.Is(LEFT_PAREN) {
+		return nil, fmt.Errorf("[line %d] Error at '%s': Expected '('.", token.Line+1, token.Lexeme)
+	}
+
+	condition, err := p.parseExpression(state)
+	if err != nil {
+		return nil, err
+	}
+
+	token, ok = p.nextToken()
+	if !ok {
+		return nil, fmt.Errorf("Error: Expected ')', got EOF.")
+	}
+
+	if !token.Type.Is(RIGHT_PAREN) {
+		return nil, fmt.Errorf("[line %d] Error at '%s': Expected ')'.", token.Line+1, token.Lexeme)
+	}
+
+	then, err := p.parseStatement(state)
+	if err != nil {
+		return nil, err
+	}
+
+	token, ok = p.nextToken()
+	if !ok || !token.Type.Is(ELSE) {
+		return &IfStmt{
+			Condition: condition,
+			Then:      then,
+			Else:      nil,
+		}, nil
+	}
+
+	els, err := p.parseStatement(state)
+	if err != nil {
+		return nil, err
+	}
+
+	return &IfStmt{
+		Condition: condition,
+		Then:      then,
+		Else:      els,
+	}, nil
 }
 
 func (p *Parser) parseExprStatement(state *State) (Statement, error) {

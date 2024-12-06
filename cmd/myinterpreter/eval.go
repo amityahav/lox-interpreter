@@ -284,6 +284,25 @@ func (b *BlockStatement) Execute() (interface{}, error) {
 	return nil, nil
 }
 
+type IfStmt struct {
+	Condition Expression
+	Then      Statement
+	Else      Statement
+}
+
+func (is *IfStmt) Execute() (interface{}, error) {
+	cond, err := is.Condition.Eval()
+	if err != nil {
+		return nil, err
+	}
+
+	if isTrue(cond) {
+		return is.Then.Execute()
+	}
+
+	return is.Else.Execute()
+}
+
 func isTrue(val interface{}) bool {
 	if val == nil {
 		return false

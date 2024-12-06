@@ -1,15 +1,1 @@
-{
-    var baz = "outer baz";
-    var bar = "outer bar";
-    {
-        baz = "modified baz";
-        var bar = "inner bar";
-        print baz;
-        print bar;
-    }
-
-    print baz;
-    print bar;
-}
-
-print bar;
+if (true) print "good";
