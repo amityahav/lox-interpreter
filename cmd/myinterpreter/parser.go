@@ -36,7 +36,9 @@ func NewParser(tokens []*Token) *Parser {
 //	printStmt      → "print" expression ";" ;
 //	expression     → assignment ;
 //	assignment     → IDENTIFIER "=" assignment
-//					 | equality ;
+//					 | logic_or ;
+//	logic_or       → logic_and ( "or" logic_and )* ;
+//	logic_and      → equality ( "and" equality )* ;
 //	equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 //	comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 //	term           → factor ( ( "-" | "+" ) factor )* ;
@@ -305,10 +307,10 @@ func (p *Parser) parseAssignment(state *State) (Expression, error) {
 
 	p.goBack()
 
-	return p.parseEquality(state)
+	return p.parseLogicOr(state)
 }
 
-func (p *Parser) parseSequence(state *State, parseFunc func(state *State) (Expression, error), matchers ...TokenType) (Expression, error) {
+func (p *Parser) parseSequenceBinary(state *State, parseFunc func(state *State) (Expression, error), matchers ...TokenType) (Expression, error) {
 	e, err := parseFunc(state)
 	if err != nil {
 		return nil, err
@@ -338,20 +340,57 @@ func (p *Parser) parseSequence(state *State, parseFunc func(state *State) (Expre
 	return e, nil
 }
 
+func (p *Parser) parseSequenceLogical(state *State, parseFunc func(state *State) (Expression, error), matchers ...TokenType) (Expression, error) {
+	e, err := parseFunc(state)
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		token, ok := p.nextToken()
+		if !ok || !slices.Contains(matchers, token.Type) {
+			break
+		}
+
+		rightExpr, err := parseFunc(state)
+		if err != nil {
+			return nil, err
+		}
+
+		e = &LogicalExpr{
+			Operator:  string(token.Type),
+			LeftExpr:  e,
+			RightExpr: rightExpr,
+		}
+	}
+
+	p.goBack()
+
+	return e, nil
+}
+
+func (p *Parser) parseLogicOr(state *State) (Expression, error) {
+	return p.parseSequenceLogical(state, p.parseLogicAnd, OR)
+}
+
+func (p *Parser) parseLogicAnd(state *State) (Expression, error) {
+	return p.parseSequenceLogical(state, p.parseEquality, AND)
+}
+
 func (p *Parser) parseEquality(state *State) (Expression, error) {
-	return p.parseSequence(state, p.parseComparison, BANG_EQUAL, EQUAL_EQUAL)
+	return p.parseSequenceBinary(state, p.parseComparison, BANG_EQUAL, EQUAL_EQUAL)
 }
 
 func (p *Parser) parseComparison(state *State) (Expression, error) {
-	return p.parseSequence(state, p.parseTerm, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL)
+	return p.parseSequenceBinary(state, p.parseTerm, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL)
 }
 
 func (p *Parser) parseTerm(state *State) (Expression, error) {
-	return p.parseSequence(state, p.parseFactor, PLUS, MINUS)
+	return p.parseSequenceBinary(state, p.parseFactor, PLUS, MINUS)
 }
 
 func (p *Parser) parseFactor(state *State) (Expression, error) {
-	return p.parseSequence(state, p.parseUnary, SLASH, STAR)
+	return p.parseSequenceBinary(state, p.parseUnary, SLASH, STAR)
 }
 
 func (p *Parser) parseUnary(state *State) (Expression, error) {

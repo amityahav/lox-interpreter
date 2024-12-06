@@ -142,6 +142,57 @@ func (be *BinaryExpr) String() string {
 	return fmt.Sprintf("(%s %s %s)", be.Operator, be.LeftExpr, be.RightExpr)
 }
 
+type LogicalExpr struct {
+	Operator  string
+	LeftExpr  Expression
+	RightExpr Expression
+}
+
+func (le *LogicalExpr) Eval() (interface{}, error) {
+	switch TokenType(le.Operator) {
+	case OR:
+		lv, err := le.LeftExpr.Eval()
+		if err != nil {
+			return nil, err
+		}
+
+		if isTrue(lv) {
+			return lv, nil
+		}
+
+		rv, err := le.RightExpr.Eval()
+		if err != nil {
+			return nil, err
+		}
+
+		return rv, nil
+	case AND:
+		lv, err := le.LeftExpr.Eval()
+		if err != nil {
+			return nil, err
+		}
+
+		if !isTrue(lv) {
+			return false, nil
+		}
+
+		rv, err := le.RightExpr.Eval()
+		if err != nil {
+			return nil, err
+		}
+
+		return isTrue(rv), nil
+	}
+
+	// unreachable
+	return nil, nil
+}
+
+func (le *LogicalExpr) String() string {
+	return fmt.Sprintf("(%s %s %s)", le.LeftExpr, le.Operator, le.RightExpr)
+
+}
+
 type GroupingExpr struct {
 	Expr Expression
 	Line int
