@@ -173,7 +173,7 @@ func (le *LogicalExpr) Eval() (interface{}, error) {
 		}
 
 		if !isTrue(lv) {
-			return false, nil
+			return lv, nil
 		}
 
 		rv, err := le.RightExpr.Eval()
@@ -181,7 +181,7 @@ func (le *LogicalExpr) Eval() (interface{}, error) {
 			return nil, err
 		}
 
-		return isTrue(rv), nil
+		return rv, nil
 	}
 
 	// unreachable
