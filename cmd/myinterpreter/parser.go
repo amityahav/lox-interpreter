@@ -217,6 +217,10 @@ func (p *Parser) parseIfStatement(state *State) (Statement, error) {
 
 	token, ok = p.nextToken()
 	if !ok || !token.Type.Is(ELSE) {
+		if ok {
+			p.goBack()
+		}
+
 		return &IfStmt{
 			Condition: condition,
 			Then:      then,
