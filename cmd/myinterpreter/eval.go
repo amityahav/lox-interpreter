@@ -358,6 +358,29 @@ func (is *IfStmt) Execute() (interface{}, error) {
 	return is.Else.Execute()
 }
 
+type WhileStmt struct {
+	Condition Expression
+	Body      Statement
+}
+
+func (ws *WhileStmt) Execute() (interface{}, error) {
+	for {
+		expr, err := ws.Condition.Eval()
+		if err != nil {
+			return nil, err
+		}
+
+		if !isTrue(expr) {
+			return nil, nil
+		}
+
+		_, err = ws.Body.Execute()
+		if err != nil {
+			return nil, err
+		}
+	}
+}
+
 func isTrue(val interface{}) bool {
 	if val == nil {
 		return false
