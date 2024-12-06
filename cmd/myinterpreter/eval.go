@@ -10,6 +10,12 @@ type Expression interface {
 	String() string
 }
 
+type NoopExpr struct{}
+
+func (ne *NoopExpr) Eval() (interface{}, error) { return nil, nil }
+
+func (ne *NoopExpr) String() string { return "" }
+
 type LiteralExpr struct {
 	Literal interface{}
 	Line    int
@@ -258,6 +264,10 @@ type Statement interface {
 	Execute() (interface{}, error)
 }
 
+type NoopStmt struct{}
+
+func (ns *NoopStmt) Execute() (interface{}, error) { return nil, nil }
+
 type VarDeclStmt struct {
 	Name string
 	Expr Expression
@@ -267,11 +277,6 @@ type VarDeclStmt struct {
 
 func (v *VarDeclStmt) Execute() (interface{}, error) {
 	scope := v.state.GetInnermostScope()
-
-	if v.Expr == nil {
-		scope.SetBinding(v.Name, nil)
-		return nil, nil
-	}
 
 	val, err := v.Expr.Eval()
 	if err != nil {
@@ -349,10 +354,6 @@ func (is *IfStmt) Execute() (interface{}, error) {
 
 	if isTrue(cond) {
 		return is.Then.Execute()
-	}
-
-	if is.Else == nil {
-		return nil, nil
 	}
 
 	return is.Else.Execute()

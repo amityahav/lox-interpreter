@@ -18,20 +18,26 @@ func NewParser(tokens []*Token) *Parser {
 	}
 }
 
+// Grammar Rules:
+//
 //	program        → declaration* EOF ;
 //
 //	declaration    → varDecl
 //				     | statement ;
 //  varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 //	statement      → exprStmt
+//				     | forStmt
 //					 | ifStmt
-//					 | printStmt
+//				  	 | printStmt
 //					 | whileStmt
 //					 | block ;
 //
+//	forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
+//					  expression? ";"
+//					  expression? ")" statement ;
 //	whileStmt      → "while" "(" expression ")" statement ;
 //	ifStmt         → "if" "(" expression ")" statement
-//					 	    	( "else" statement )? ;
+//					  ( "else" statement )? ;
 //
 //	block          → "{" declaration* "}" ;
 //	exprStmt       → expression ";" ;
@@ -92,7 +98,7 @@ func (p *Parser) parseVarDeclaration(state *State) (Statement, error) {
 		// uninitialized variable
 		return &VarDeclStmt{
 			Name:  varName,
-			Expr:  nil,
+			Expr:  &NoopExpr{},
 			state: state,
 		}, nil
 	}
@@ -141,6 +147,8 @@ func (p *Parser) parseStatement(state *State) (Statement, error) {
 		return p.parseIfStatement(state)
 	case WHILE:
 		return p.parseWhileStatement(state)
+	case FOR:
+		return p.parseForStatement(state)
 	}
 
 	p.goBack()
@@ -230,7 +238,7 @@ func (p *Parser) parseIfStatement(state *State) (Statement, error) {
 		return &IfStmt{
 			Condition: condition,
 			Then:      then,
-			Else:      nil,
+			Else:      &NoopStmt{},
 		}, nil
 	}
 
@@ -278,6 +286,122 @@ func (p *Parser) parseWhileStatement(state *State) (Statement, error) {
 	return &WhileStmt{
 		Condition: condition,
 		Body:      body,
+	}, nil
+}
+
+// forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
+//
+//	expression? ";"
+//	expression? ")" statement ;
+func (p *Parser) parseForStatement(state *State) (Statement, error) {
+	token, ok := p.nextToken()
+	if !ok {
+		return nil, fmt.Errorf("Error: Expected '(', got EOF.")
+	}
+
+	if !token.Type.Is(LEFT_PAREN) {
+		return nil, fmt.Errorf("[line %d] Error at '%s': Expected '('.", token.Line+1, token.Lexeme)
+	}
+
+	token, ok = p.nextToken()
+	if !ok {
+		return nil, fmt.Errorf("Error: Expected statment, got EOF.")
+	}
+
+	var initializer Statement = &NoopStmt{}
+	switch token.Type {
+	case VAR:
+		i, err := p.parseVarDeclaration(state)
+		if err != nil {
+			return nil, err
+		}
+
+		initializer = i
+	case SEMICOLON:
+	default:
+		p.goBack()
+
+		i, err := p.parseExprStatement(state)
+		if err != nil {
+			return nil, err
+		}
+
+		initializer = i
+	}
+
+	token, ok = p.nextToken()
+	if !ok {
+		return nil, fmt.Errorf("Error: Expected ';' or expression, got EOF.")
+	}
+
+	var condition Expression = &NoopExpr{}
+	if !token.Type.Is(SEMICOLON) {
+		p.goBack()
+
+		expr, err := p.parseExpression(state)
+		if err != nil {
+			return nil, err
+		}
+
+		token, ok = p.nextToken()
+		if !ok {
+			return nil, fmt.Errorf("Error: Expected ';' or expression, got EOF.")
+		}
+
+		if !token.Type.Is(SEMICOLON) {
+			return nil, fmt.Errorf("[line %d] Error at '%s': Expected ';'.", token.Line+1, token.Lexeme)
+		}
+
+		condition = expr
+	}
+
+	token, ok = p.nextToken()
+	if !ok {
+		return nil, fmt.Errorf("Error: Expected ')' or expression, got EOF.")
+	}
+
+	var increment Expression = &NoopExpr{}
+	if !token.Type.Is(RIGHT_PAREN) {
+		p.goBack()
+
+		expr, err := p.parseExpression(state)
+		if err != nil {
+			return nil, err
+		}
+
+		token, ok = p.nextToken()
+		if !ok {
+			return nil, fmt.Errorf("Error: Expected ')' or expression, got EOF.")
+		}
+
+		if !token.Type.Is(RIGHT_PAREN) {
+			return nil, fmt.Errorf("[line %d] Error at '%s': Expected ')'.", token.Line+1, token.Lexeme)
+		}
+
+		increment = expr
+	}
+
+	body, err := p.parseStatement(state)
+	if err != nil {
+		return nil, err
+	}
+
+	// desugaring for-loop to while-loop
+	return &BlockStatement{
+		Stmts: []Statement{
+			initializer,
+			&WhileStmt{
+				Condition: condition,
+				Body: &BlockStatement{
+					Stmts: []Statement{
+						body,
+						&ExprStmt{Expr: increment},
+					},
+					state: state,
+				},
+			},
+		},
+		state: state,
 	}, nil
 }
 
