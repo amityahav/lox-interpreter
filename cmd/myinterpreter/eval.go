@@ -300,6 +300,10 @@ func (is *IfStmt) Execute() (interface{}, error) {
 		return is.Then.Execute()
 	}
 
+	if is.Else == nil {
+		return nil, nil
+	}
+
 	return is.Else.Execute()
 }
 
