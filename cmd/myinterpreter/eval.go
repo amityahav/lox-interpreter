@@ -175,6 +175,28 @@ func (id *IdentifierExpr) String() string {
 	return id.Name
 }
 
+type AssignmentExpr struct {
+	Name string
+	Expr Expression
+
+	state *State
+}
+
+func (as *AssignmentExpr) Eval() (interface{}, error) {
+	val, err := as.Expr.Eval()
+	if err != nil {
+		return nil, err
+	}
+
+	as.state.AddGlobal(as.Name, val)
+
+	return val, nil
+}
+
+func (as *AssignmentExpr) String() string {
+	return as.Name
+}
+
 type Statement interface {
 	Execute() (interface{}, error)
 }

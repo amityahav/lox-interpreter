@@ -27,7 +27,9 @@ func NewParser(tokens []*Token) *Parser {
 //				     | printStmt ;
 //	exprStmt       → expression ";" ;
 //	printStmt      → "print" expression ";" ;
-//	expression     → equality ;
+//	expression     → assignment ;
+//	assignment     → IDENTIFIER "=" assignment
+//					 | equality ;
 //	equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 //	comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 //	term           → factor ( ( "-" | "+" ) factor )* ;
@@ -140,7 +142,7 @@ func (p *Parser) parsePrintStatement(state *State) (Statement, error) {
 	}
 
 	if !token.Type.Is(SEMICOLON) {
-		return nil, fmt.Errorf("[line %d] Error: Expected ';'.", token.Line+1)
+		return nil, fmt.Errorf("[line %d] Error at '%s': Expected ';'.", token.Line+1, token.Lexeme)
 	}
 
 	return &PrintStmt{Expr: expr}, nil
@@ -158,7 +160,7 @@ func (p *Parser) parseExprStatement(state *State) (Statement, error) {
 	}
 
 	if !token.Type.Is(SEMICOLON) {
-		return nil, fmt.Errorf("[line %d] Error: Expected ';'.", token.Line+1)
+		return nil, fmt.Errorf("[line %d] Error at '%s': Expected ';'.", token.Line+1, token.Lexeme)
 	}
 
 	return &ExprStmt{Expr: expr}, nil
@@ -169,7 +171,44 @@ func (p *Parser) NextExpression(state *State) (Expression, error) {
 }
 
 func (p *Parser) parseExpression(state *State) (Expression, error) {
-	return p.parseEquality(state)
+	return p.parseAssignment(state)
+}
+
+func (p *Parser) parseAssignment(state *State) (Expression, error) {
+	token, ok := p.nextToken()
+	if !ok {
+		return nil, ErrNoMoreTokens
+	}
+
+	if !token.Type.Is(IDENTIFIER) {
+		p.goBack()
+		return p.parseEquality(state)
+	}
+
+	varName := token.Lexeme
+
+	token, ok = p.nextToken()
+	if !ok {
+		return nil, fmt.Errorf("Error: Expected '=', got EOF.")
+	}
+
+	if !token.Type.Is(EQUAL) {
+		return nil, fmt.Errorf("[line %d] Error at '%s': Expected '='.", token.Line+1, token.Lexeme)
+	}
+
+	expr, err := p.parseAssignment(state)
+	if err != nil {
+		if errors.Is(err, ErrNoMoreTokens) {
+			return nil, fmt.Errorf("[line %d] Error: Expected expression.", token.Line+1)
+		}
+
+		return nil, err
+	}
+
+	return &AssignmentExpr{
+		Name: varName,
+		Expr: expr,
+	}, nil
 }
 
 func (p *Parser) parseSequence(state *State, parseFunc func(state *State) (Expression, error), matchers ...TokenType) (Expression, error) {
