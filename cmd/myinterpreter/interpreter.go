@@ -10,7 +10,7 @@ type Scope struct {
 	Bindings map[string]interface{}
 }
 
-func (s *Scope) AddBinding(name string, value interface{}) {
+func (s *Scope) SetBinding(name string, value interface{}) {
 	s.Bindings[name] = value
 }
 
@@ -34,12 +34,12 @@ func (s *State) CloseInnermostScope() {
 	s.Scopes = s.Scopes[:len(s.Scopes)-1]
 }
 
-func (s *State) GetBinding(name string) (interface{}, bool) {
+func (s *State) GetScopeFor(name string) (*Scope, bool) {
 	// search for the binding through all existing scopes, starting from the innermost one
 	for i := len(s.Scopes) - 1; i >= 0; i-- {
-		val, ok := s.Scopes[i].Bindings[name]
+		_, ok := s.Scopes[i].Bindings[name]
 		if ok {
-			return val, ok
+			return s.Scopes[i], ok
 		}
 	}
 

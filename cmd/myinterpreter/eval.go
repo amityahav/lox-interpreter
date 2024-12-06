@@ -163,12 +163,12 @@ type IdentifierExpr struct {
 }
 
 func (id *IdentifierExpr) Eval() (interface{}, error) {
-	val, ok := id.state.GetBinding(id.Name)
+	scope, ok := id.state.GetScopeFor(id.Name)
 	if !ok {
 		return nil, fmt.Errorf("Undefined variable '%s'.\n[line %d]", id.Name, id.Line)
 	}
 
-	return val, nil
+	return scope.Bindings[id.Name], nil
 }
 
 func (id *IdentifierExpr) String() string {
@@ -178,19 +178,23 @@ func (id *IdentifierExpr) String() string {
 type AssignmentExpr struct {
 	Name string
 	Expr Expression
+	Line int
 
 	state *State
 }
 
 func (as *AssignmentExpr) Eval() (interface{}, error) {
-	scope := as.state.GetInnermostScope()
+	scope, ok := as.state.GetScopeFor(as.Name)
+	if !ok {
+		return nil, fmt.Errorf("Undefined variable '%s'.\n[line %d]", as.Name, as.Line)
+	}
 
 	val, err := as.Expr.Eval()
 	if err != nil {
 		return nil, err
 	}
 
-	scope.AddBinding(as.Name, val)
+	scope.SetBinding(as.Name, val)
 
 	return val, nil
 }
@@ -214,7 +218,7 @@ func (v *VarDeclStmt) Execute() (interface{}, error) {
 	scope := v.state.GetInnermostScope()
 
 	if v.Expr == nil {
-		scope.AddBinding(v.Name, nil)
+		scope.SetBinding(v.Name, nil)
 		return nil, nil
 	}
 
@@ -223,7 +227,7 @@ func (v *VarDeclStmt) Execute() (interface{}, error) {
 		return nil, err
 	}
 
-	scope.AddBinding(v.Name, val)
+	scope.SetBinding(v.Name, val)
 
 	return nil, nil
 }

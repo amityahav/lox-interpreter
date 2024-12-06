@@ -238,6 +238,7 @@ func (p *Parser) parseAssignment(state *State) (Expression, error) {
 		return &AssignmentExpr{
 			Name:  varName,
 			Expr:  expr,
+			Line:  token.Line,
 			state: state,
 		}, nil
 	}

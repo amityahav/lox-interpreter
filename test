@@ -1,19 +1,15 @@
-var bar = "global bar";
-var world = "global world";
-var hello = "global hello";
 {
-  var bar = "outer bar";
-  var world = "outer world";
-  {
-    var bar = "inner bar";
+    var baz = "outer baz";
+    var bar = "outer bar";
+    {
+        baz = "modified baz";
+        var bar = "inner bar";
+        print baz;
+        print bar;
+    }
+
+    print baz;
     print bar;
-    print world;
-    print hello;
-  }
-  print bar;
-  print world;
-  print hello;
 }
+
 print bar;
-print world;
-print hello;
