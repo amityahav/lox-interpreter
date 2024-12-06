@@ -252,6 +252,21 @@ func (ps *PrintStmt) Execute() (interface{}, error) {
 	return nil, nil
 }
 
+type BlockStatement struct {
+	Stmts []Statement
+}
+
+func (b *BlockStatement) Execute() (interface{}, error) {
+	for _, stmt := range b.Stmts {
+		_, err := stmt.Execute()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, nil
+}
+
 func isTrue(val interface{}) bool {
 	if val == nil {
 		return false

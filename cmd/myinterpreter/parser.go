@@ -24,7 +24,10 @@ func NewParser(tokens []*Token) *Parser {
 //				     | statement ;
 //  varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 //	statement      → exprStmt
-//				     | printStmt ;
+//					 | printStmt
+//					 | block ;
+//
+//	block          → "{" declaration* "}" ;
 //	exprStmt       → expression ";" ;
 //	printStmt      → "print" expression ";" ;
 //	expression     → assignment ;
@@ -121,8 +124,11 @@ func (p *Parser) parseStatement(state *State) (Statement, error) {
 		return nil, ErrNoMoreTokens
 	}
 
-	if token.Type.Is(PRINT) {
+	switch token.Type {
+	case PRINT:
 		return p.parsePrintStatement(state)
+	case LEFT_BRACE:
+		return p.parseBlockStatement(state)
 	}
 
 	p.goBack()
@@ -146,6 +152,30 @@ func (p *Parser) parsePrintStatement(state *State) (Statement, error) {
 	}
 
 	return &PrintStmt{Expr: expr}, nil
+}
+
+func (p *Parser) parseBlockStatement(state *State) (Statement, error) {
+	var stmts []Statement
+
+	for {
+		token, ok := p.nextToken()
+		if !ok {
+			return nil, fmt.Errorf("Error: Expected '}', got EOF.")
+		}
+
+		if token.Type.Is(RIGHT_BRACE) {
+			return &BlockStatement{Stmts: stmts}, nil
+		}
+
+		p.goBack()
+
+		stmt, err := p.parseDeclaration(state)
+		if err != nil {
+			return nil, err
+		}
+
+		stmts = append(stmts, stmt)
+	}
 }
 
 func (p *Parser) parseExprStatement(state *State) (Statement, error) {
@@ -298,18 +328,18 @@ func (p *Parser) parsePrimary(state *State) (Expression, error) {
 		return nil, ErrNoMoreTokens
 	}
 
-	switch {
-	case token.Type.Is(TRUE):
+	switch token.Type {
+	case TRUE:
 		currExpr = &LiteralExpr{Literal: true, Line: token.Line}
-	case token.Type.Is(FALSE):
+	case FALSE:
 		currExpr = &LiteralExpr{Literal: false, Line: token.Line}
-	case token.Type.Is(NIL):
+	case NIL:
 		currExpr = &LiteralExpr{Literal: nil, Line: token.Line}
-	case token.Type.Is(NUMBER) || token.Type.Is(STRING):
+	case NUMBER, STRING:
 		currExpr = &LiteralExpr{Literal: token.Literal, Line: token.Line}
-	case token.Type.Is(IDENTIFIER):
+	case IDENTIFIER:
 		currExpr = &IdentifierExpr{Name: token.Lexeme, Line: token.Line, state: state}
-	case token.Type.Is(LEFT_PAREN):
+	case LEFT_PAREN:
 		e, err := p.parseExpression(state)
 		if err != nil {
 			if errors.Is(err, ErrNoMoreTokens) {
