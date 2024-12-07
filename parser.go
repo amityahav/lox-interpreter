@@ -421,13 +421,9 @@ func (p *Parser) parseForStatement() (Statement, error) {
 			return nil, err
 		}
 
-		token, ok = p.nextToken()
-		if !ok {
-			return nil, fmt.Errorf("Error: Expected ')' or expression, got EOF.")
-		}
-
-		if !token.Type.Is(RIGHT_PAREN) {
-			return nil, fmt.Errorf("[line %d] Error at '%s': Expected ')'.", token.Line+1, token.Lexeme)
+		_, err = p.match(RIGHT_PAREN)
+		if err != nil {
+			return nil, err
 		}
 
 		increment = expr
