@@ -51,18 +51,19 @@ func NewParser(tokens []*Token) *Parser {
 //	comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 //	term           → factor ( ( "-" | "+" ) factor )* ;
 //	factor         → unary ( ( "/" | "*" ) unary )* ;
-//	unary          → ( "!" | "-" ) unary
-//					 | primary ;
+//	unary          → ( "!" | "-" ) unary | call ;
+//	call           → primary ( "(" arguments? ")" )* ;
+//  arguments      → expression ( "," expression )* ;
 //	primary        → "true" | "false" | "nil"
 //					 | NUMBER | STRING
 //				     | "(" expression ")"
 //				     | IDENTIFIER ;
 
-func (p *Parser) NextDeclaration(state *State) (Statement, error) {
+func (p *Parser) NextDeclaration(state *Environment) (Statement, error) {
 	return p.parseDeclaration(state)
 }
 
-func (p *Parser) parseDeclaration(state *State) (Statement, error) {
+func (p *Parser) parseDeclaration(state *Environment) (Statement, error) {
 	token, ok := p.nextToken()
 	if !ok {
 		return nil, ErrNoMoreTokens
@@ -77,7 +78,7 @@ func (p *Parser) parseDeclaration(state *State) (Statement, error) {
 	return p.parseStatement(state)
 }
 
-func (p *Parser) parseVarDeclaration(state *State) (Statement, error) {
+func (p *Parser) parseVarDeclaration(state *Environment) (Statement, error) {
 	token, ok := p.nextToken()
 	if !ok {
 		return nil, fmt.Errorf("Error: Expected IDENTIFIER, got EOF.")
@@ -132,7 +133,7 @@ func (p *Parser) parseVarDeclaration(state *State) (Statement, error) {
 	}, nil
 }
 
-func (p *Parser) parseStatement(state *State) (Statement, error) {
+func (p *Parser) parseStatement(state *Environment) (Statement, error) {
 	token, ok := p.nextToken()
 	if !ok {
 		return nil, ErrNoMoreTokens
@@ -156,7 +157,7 @@ func (p *Parser) parseStatement(state *State) (Statement, error) {
 	return p.parseExprStatement(state)
 }
 
-func (p *Parser) parsePrintStatement(state *State) (Statement, error) {
+func (p *Parser) parsePrintStatement(state *Environment) (Statement, error) {
 	expr, err := p.parseExpression(state)
 	if err != nil {
 		return nil, err
@@ -174,7 +175,7 @@ func (p *Parser) parsePrintStatement(state *State) (Statement, error) {
 	return &PrintStmt{Expr: expr}, nil
 }
 
-func (p *Parser) parseBlockStatement(state *State) (Statement, error) {
+func (p *Parser) parseBlockStatement(state *Environment) (Statement, error) {
 	var stmts []Statement
 
 	for {
@@ -200,7 +201,7 @@ func (p *Parser) parseBlockStatement(state *State) (Statement, error) {
 	}
 }
 
-func (p *Parser) parseIfStatement(state *State) (Statement, error) {
+func (p *Parser) parseIfStatement(state *Environment) (Statement, error) {
 	token, ok := p.nextToken()
 	if !ok {
 		return nil, fmt.Errorf("Error: Expected '(', got EOF.")
@@ -254,7 +255,7 @@ func (p *Parser) parseIfStatement(state *State) (Statement, error) {
 	}, nil
 }
 
-func (p *Parser) parseWhileStatement(state *State) (Statement, error) {
+func (p *Parser) parseWhileStatement(state *Environment) (Statement, error) {
 	token, ok := p.nextToken()
 	if !ok {
 		return nil, fmt.Errorf("Error: Expected '(', got EOF.")
@@ -289,11 +290,7 @@ func (p *Parser) parseWhileStatement(state *State) (Statement, error) {
 	}, nil
 }
 
-// forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
-//
-//	expression? ";"
-//	expression? ")" statement ;
-func (p *Parser) parseForStatement(state *State) (Statement, error) {
+func (p *Parser) parseForStatement(state *Environment) (Statement, error) {
 	token, ok := p.nextToken()
 	if !ok {
 		return nil, fmt.Errorf("Error: Expected '(', got EOF.")
@@ -405,7 +402,7 @@ func (p *Parser) parseForStatement(state *State) (Statement, error) {
 	}, nil
 }
 
-func (p *Parser) parseExprStatement(state *State) (Statement, error) {
+func (p *Parser) parseExprStatement(state *Environment) (Statement, error) {
 	expr, err := p.parseExpression(state)
 	if err != nil {
 		return nil, err
@@ -423,15 +420,15 @@ func (p *Parser) parseExprStatement(state *State) (Statement, error) {
 	return &ExprStmt{Expr: expr}, nil
 }
 
-func (p *Parser) NextExpression(state *State) (Expression, error) {
+func (p *Parser) NextExpression(state *Environment) (Expression, error) {
 	return p.parseExpression(state)
 }
 
-func (p *Parser) parseExpression(state *State) (Expression, error) {
+func (p *Parser) parseExpression(state *Environment) (Expression, error) {
 	return p.parseAssignment(state)
 }
 
-func (p *Parser) parseAssignment(state *State) (Expression, error) {
+func (p *Parser) parseAssignment(state *Environment) (Expression, error) {
 	token, ok := p.nextToken()
 	if !ok {
 		return nil, ErrNoMoreTokens
@@ -473,7 +470,7 @@ func (p *Parser) parseAssignment(state *State) (Expression, error) {
 	return p.parseLogicOr(state)
 }
 
-func (p *Parser) parseSequenceBinary(state *State, parseFunc func(state *State) (Expression, error), matchers ...TokenType) (Expression, error) {
+func (p *Parser) parseSequenceBinary(state *Environment, parseFunc func(state *Environment) (Expression, error), matchers ...TokenType) (Expression, error) {
 	e, err := parseFunc(state)
 	if err != nil {
 		return nil, err
@@ -482,6 +479,10 @@ func (p *Parser) parseSequenceBinary(state *State, parseFunc func(state *State) 
 	for {
 		token, ok := p.nextToken()
 		if !ok || !slices.Contains(matchers, token.Type) {
+			if ok {
+				p.goBack()
+			}
+
 			break
 		}
 
@@ -498,12 +499,10 @@ func (p *Parser) parseSequenceBinary(state *State, parseFunc func(state *State) 
 		}
 	}
 
-	p.goBack()
-
 	return e, nil
 }
 
-func (p *Parser) parseSequenceLogical(state *State, parseFunc func(state *State) (Expression, error), matchers ...TokenType) (Expression, error) {
+func (p *Parser) parseSequenceLogical(state *Environment, parseFunc func(state *Environment) (Expression, error), matchers ...TokenType) (Expression, error) {
 	e, err := parseFunc(state)
 	if err != nil {
 		return nil, err
@@ -512,6 +511,10 @@ func (p *Parser) parseSequenceLogical(state *State, parseFunc func(state *State)
 	for {
 		token, ok := p.nextToken()
 		if !ok || !slices.Contains(matchers, token.Type) {
+			if ok {
+				p.goBack()
+			}
+
 			break
 		}
 
@@ -527,36 +530,34 @@ func (p *Parser) parseSequenceLogical(state *State, parseFunc func(state *State)
 		}
 	}
 
-	p.goBack()
-
 	return e, nil
 }
 
-func (p *Parser) parseLogicOr(state *State) (Expression, error) {
+func (p *Parser) parseLogicOr(state *Environment) (Expression, error) {
 	return p.parseSequenceLogical(state, p.parseLogicAnd, OR)
 }
 
-func (p *Parser) parseLogicAnd(state *State) (Expression, error) {
+func (p *Parser) parseLogicAnd(state *Environment) (Expression, error) {
 	return p.parseSequenceLogical(state, p.parseEquality, AND)
 }
 
-func (p *Parser) parseEquality(state *State) (Expression, error) {
+func (p *Parser) parseEquality(state *Environment) (Expression, error) {
 	return p.parseSequenceBinary(state, p.parseComparison, BANG_EQUAL, EQUAL_EQUAL)
 }
 
-func (p *Parser) parseComparison(state *State) (Expression, error) {
+func (p *Parser) parseComparison(state *Environment) (Expression, error) {
 	return p.parseSequenceBinary(state, p.parseTerm, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL)
 }
 
-func (p *Parser) parseTerm(state *State) (Expression, error) {
+func (p *Parser) parseTerm(state *Environment) (Expression, error) {
 	return p.parseSequenceBinary(state, p.parseFactor, PLUS, MINUS)
 }
 
-func (p *Parser) parseFactor(state *State) (Expression, error) {
+func (p *Parser) parseFactor(state *Environment) (Expression, error) {
 	return p.parseSequenceBinary(state, p.parseUnary, SLASH, STAR)
 }
 
-func (p *Parser) parseUnary(state *State) (Expression, error) {
+func (p *Parser) parseUnary(state *Environment) (Expression, error) {
 	token, ok := p.nextToken()
 	if !ok {
 		return nil, ErrNoMoreTokens
@@ -582,10 +583,97 @@ func (p *Parser) parseUnary(state *State) (Expression, error) {
 
 	p.goBack()
 
-	return p.parsePrimary(state)
+	return p.parseCall(state)
 }
 
-func (p *Parser) parsePrimary(state *State) (Expression, error) {
+// unary          → ( "!" | "-" ) unary | call ;
+// call           → primary ( "(" arguments? ")" )* ;
+func (p *Parser) parseCall(state *Environment) (Expression, error) {
+	expr, err := p.parsePrimary(state)
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		token, ok := p.nextToken()
+		if !ok || !token.Type.Is(LEFT_PAREN) {
+			if ok {
+				p.goBack()
+			}
+
+			break
+		}
+
+		token, ok = p.nextToken()
+		if !ok {
+			return nil, fmt.Errorf("Error: Expected ')' or arguments, got EOF.")
+		}
+
+		if token.Type.Is(RIGHT_PAREN) {
+			expr = &CallExpr{
+				Callee: expr,
+				Args:   nil,
+			}
+
+			continue
+		}
+
+		args, err := p.parseArguments(state)
+		if err != nil {
+			return nil, err
+		}
+
+		token, ok = p.nextToken()
+		if !ok {
+			return nil, fmt.Errorf("Error: Expected ')' or arguments, got EOF.")
+		}
+
+		if !token.Type.Is(RIGHT_PAREN) {
+			return nil, fmt.Errorf("[line %d] Error at '%s': Expect ')'.", token.Line+1, token.Lexeme)
+		}
+
+		expr = &CallExpr{
+			Callee: expr,
+			Args:   args,
+		}
+	}
+
+	return expr, nil
+}
+
+// arguments      → expression ( "," expression )* ;
+func (p *Parser) parseArguments(state *Environment) ([]Expression, error) {
+	var args []Expression
+
+	e, err := p.parseExpression(state)
+	if err != nil {
+		return nil, err
+	}
+
+	args = append(args, e)
+
+	for {
+		token, ok := p.nextToken()
+		if !ok || !token.Type.Is(COMMA) {
+			if ok {
+				p.goBack()
+			}
+
+			break
+		}
+
+		exp, err := p.parseExpression(state)
+		if err != nil {
+			return nil, err
+		}
+
+		args = append(args, exp)
+	}
+
+	return args, nil
+}
+
+func (p *Parser) parsePrimary(state *Environment) (Expression, error) {
 	var currExpr Expression
 
 	token, ok := p.nextToken()

@@ -216,7 +216,7 @@ type IdentifierExpr struct {
 	Name string
 	Line int
 
-	state *State
+	state *Environment
 }
 
 func (id *IdentifierExpr) Eval() (interface{}, error) {
@@ -237,7 +237,7 @@ type AssignmentExpr struct {
 	Expr Expression
 	Line int
 
-	state *State
+	state *Environment
 }
 
 func (as *AssignmentExpr) Eval() (interface{}, error) {
@@ -260,6 +260,40 @@ func (as *AssignmentExpr) String() string {
 	return as.Name
 }
 
+type CallExpr struct {
+	Callee Expression
+	Args   []Expression
+}
+
+func (c *CallExpr) Eval() (interface{}, error) {
+	val, err := c.Callee.Eval()
+	if err != nil {
+		return nil, err
+	}
+
+	caller, ok := val.(Caller)
+	if !ok {
+		panic("not a function")
+	}
+
+	var as []interface{}
+
+	for _, arg := range c.Args {
+		v, err := arg.Eval()
+		if err != nil {
+			return nil, err
+		}
+
+		as = append(as, v)
+	}
+
+	return caller.Call(as...)
+}
+
+func (c *CallExpr) String() string {
+	return ""
+}
+
 type Statement interface {
 	Execute() (interface{}, error)
 }
@@ -272,7 +306,7 @@ type VarDeclStmt struct {
 	Name string
 	Expr Expression
 
-	state *State
+	state *Environment
 }
 
 func (v *VarDeclStmt) Execute() (interface{}, error) {
@@ -319,7 +353,7 @@ func (ps *PrintStmt) Execute() (interface{}, error) {
 type BlockStatement struct {
 	Stmts []Statement
 
-	state *State
+	state *Environment
 }
 
 func (b *BlockStatement) Execute() (interface{}, error) {

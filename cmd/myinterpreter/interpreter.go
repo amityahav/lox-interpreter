@@ -4,7 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 )
+
+type Caller interface {
+	Call(args ...interface{}) (interface{}, error)
+}
+
+type NativeClock struct{}
+
+func (nc *NativeClock) Call(_ ...interface{}) (interface{}, error) {
+	return time.Now().Unix(), nil
+}
 
 type Scope struct {
 	Bindings map[string]interface{}
@@ -14,32 +25,32 @@ func (s *Scope) SetBinding(name string, value interface{}) {
 	s.Bindings[name] = value
 }
 
-type State struct {
+type Environment struct {
 	Scopes []*Scope
 }
 
-func (s *State) GrowScopes() {
-	s.Scopes = append(s.Scopes, &Scope{make(map[string]interface{})})
+func (e *Environment) GrowScopes() {
+	e.Scopes = append(e.Scopes, &Scope{make(map[string]interface{})})
 }
 
-func (s *State) GetInnermostScope() *Scope {
-	return s.Scopes[len(s.Scopes)-1]
+func (e *Environment) GetInnermostScope() *Scope {
+	return e.Scopes[len(e.Scopes)-1]
 }
 
-func (s *State) CloseInnermostScope() {
-	if isGlobalScope := len(s.Scopes) == 1; isGlobalScope {
+func (e *Environment) CloseInnermostScope() {
+	if isGlobalScope := len(e.Scopes) == 1; isGlobalScope {
 		return
 	}
 
-	s.Scopes = s.Scopes[:len(s.Scopes)-1]
+	e.Scopes = e.Scopes[:len(e.Scopes)-1]
 }
 
-func (s *State) GetScopeFor(name string) (*Scope, bool) {
+func (e *Environment) GetScopeFor(name string) (*Scope, bool) {
 	// search for the binding through all existing scopes, starting from the innermost one
-	for i := len(s.Scopes) - 1; i >= 0; i-- {
-		_, ok := s.Scopes[i].Bindings[name]
+	for i := len(e.Scopes) - 1; i >= 0; i-- {
+		_, ok := e.Scopes[i].Bindings[name]
 		if ok {
-			return s.Scopes[i], ok
+			return e.Scopes[i], ok
 		}
 	}
 
@@ -47,12 +58,14 @@ func (s *State) GetScopeFor(name string) (*Scope, bool) {
 }
 
 type Interpreter struct {
-	state State
+	state Environment
 }
 
 func NewInterpreter() *Interpreter {
 	return &Interpreter{
-		state: State{Scopes: []*Scope{{make(map[string]interface{})}}}, // first scope is the global scope
+		state: Environment{Scopes: []*Scope{{map[string]interface{}{
+			"clock": &NativeClock{},
+		}}}}, // first scope is the global scope
 	}
 }
 
