@@ -497,9 +497,6 @@ func (p *Parser) parseExpression() (Expression, error) {
 	return p.parseAssignment()
 }
 
-// assignment     → IDENTIFIER "=" assignment
-//
-//	| logic_or ;
 func (p *Parser) parseAssignment() (Expression, error) {
 	token, err := p.match(IDENTIFIER)
 	if err != nil {
