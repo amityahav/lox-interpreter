@@ -4,57 +4,32 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"time"
 )
 
-type Caller interface {
-	Call(args ...interface{}) (interface{}, error)
-}
-
-type NativeClock struct{}
-
-func (nc *NativeClock) Call(_ ...interface{}) (interface{}, error) {
-	return float64(time.Now().Unix()), nil
-}
-
-type Scope struct {
-	Bindings map[string]interface{}
-}
-
-func (s *Scope) SetBinding(name string, value interface{}) {
-	s.Bindings[name] = value
-}
-
 type Environment struct {
-	Scopes []*Scope
+	Bindings map[string]interface{}
+	parent   *Environment
 }
 
-func (e *Environment) GrowScopes() {
-	e.Scopes = append(e.Scopes, &Scope{make(map[string]interface{})})
+func (e *Environment) SetBinding(name string, value interface{}) {
+	e.Bindings[name] = value
 }
 
-func (e *Environment) GetInnermostScope() *Scope {
-	return e.Scopes[len(e.Scopes)-1]
-}
-
-func (e *Environment) CloseInnermostScope() {
-	if isGlobalScope := len(e.Scopes) == 1; isGlobalScope {
-		return
-	}
-
-	e.Scopes = e.Scopes[:len(e.Scopes)-1]
-}
-
-func (e *Environment) GetScopeFor(name string) (*Scope, bool) {
-	// search for the binding through all existing scopes, starting from the innermost one
-	for i := len(e.Scopes) - 1; i >= 0; i-- {
-		_, ok := e.Scopes[i].Bindings[name]
-		if ok {
-			return e.Scopes[i], ok
+func (e *Environment) Lookup(name string) (*Environment, bool) {
+	for curr := e; curr != nil; curr = curr.parent {
+		if _, ok := curr.Bindings[name]; ok {
+			return curr, true
 		}
 	}
 
 	return nil, false
+}
+
+func ExpandEnv(parentEnv *Environment) *Environment {
+	return &Environment{
+		Bindings: make(map[string]interface{}),
+		parent:   parentEnv,
+	}
 }
 
 type Interpreter struct {
@@ -63,9 +38,11 @@ type Interpreter struct {
 
 func NewInterpreter() *Interpreter {
 	return &Interpreter{
-		env: Environment{Scopes: []*Scope{{map[string]interface{}{
-			"clock": &NativeClock{},
-		}}}}, // first scope is the global scope
+		env: Environment{
+			Bindings: map[string]interface{}{
+				"clock": &NativeClock{},
+			},
+		},
 	}
 }
 

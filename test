@@ -1,6 +1,8 @@
-{
- var hello = 81;
- var bar = 81;
- {
-    print hello + bar;
+fun fib(n) {
+  if (n < 2) return n;
+  return fib(n - 2) + fib(n - 1);
 }
+
+var start = clock();
+print fib(32) == 2178309;
+print (clock() - start) < 5; // 5 seconds

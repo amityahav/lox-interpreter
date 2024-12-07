@@ -30,12 +30,14 @@ func NewParser(tokens []*Token) *Parser {
 // 	parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
 //  varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 //	statement      → exprStmt
-//				     | forStmt
+//					 | forStmt
 //					 | ifStmt
-//				  	 | printStmt
+//					 | printStmt
+//					 | returnStmt
 //					 | whileStmt
 //					 | block ;
 //
+//	returnStmt     → "return" expression? ";" ;
 //	forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
 //					  expression? ";"
 //					  expression? ")" statement ;
@@ -92,7 +94,6 @@ func (p *Parser) parseFunDeclaration() (Statement, error) {
 	return p.parseFunction()
 }
 
-// function       → IDENTIFIER "(" parameters? ")" block ;
 func (p *Parser) parseFunction() (Statement, error) {
 	token, err := p.match(IDENTIFIER)
 	if err != nil {
@@ -225,6 +226,8 @@ func (p *Parser) parseStatement() (Statement, error) {
 		return p.parseWhileStatement()
 	case FOR:
 		return p.parseForStatement()
+	case RETURN:
+		return p.parseReturnStatement()
 	}
 
 	return p.parseExprStatement()
@@ -450,6 +453,30 @@ func (p *Parser) parseForStatement() (Statement, error) {
 			},
 		},
 	}, nil
+}
+
+func (p *Parser) parseReturnStatement() (Statement, error) {
+	_, err := p.match(RETURN)
+	if err != nil {
+		return nil, err
+	}
+
+	var expr Expression = &NoopExpr{}
+
+	_, err = p.match(SEMICOLON)
+	if err != nil {
+		expr, err = p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = p.match(SEMICOLON)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &ReturnStmt{Expr: expr}, nil
 }
 
 func (p *Parser) parseExprStatement() (Statement, error) {

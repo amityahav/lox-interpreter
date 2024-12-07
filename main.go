@@ -61,7 +61,7 @@ func main() {
 				errFound = true
 				fmt.Fprintln(os.Stderr, err.Error()+"\n")
 			} else {
-				fmt.Println(expr.String())
+				fmt.Println(expr)
 			}
 		}
 

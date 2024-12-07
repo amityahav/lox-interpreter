@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"time"
 )
 
 type Expression interface {
 	Eval(env *Environment) (interface{}, error)
-	String() string
 }
 
 type NoopExpr struct{}
@@ -68,7 +68,7 @@ func (ue *UnaryExpr) Eval(env *Environment) (interface{}, error) {
 }
 
 func (ue *UnaryExpr) String() string {
-	return fmt.Sprintf("(%s %s)", ue.Unary, ue.Expr.String())
+	return fmt.Sprintf("(%s %v)", ue.Unary, ue.Expr)
 }
 
 type BinaryExpr struct {
@@ -209,7 +209,7 @@ func (ge *GroupingExpr) Eval(env *Environment) (interface{}, error) {
 }
 
 func (ge *GroupingExpr) String() string {
-	return fmt.Sprintf("(group %s)", ge.Expr.String())
+	return fmt.Sprintf("(group %v)", ge.Expr)
 }
 
 type IdentifierExpr struct {
@@ -218,12 +218,12 @@ type IdentifierExpr struct {
 }
 
 func (id *IdentifierExpr) Eval(env *Environment) (interface{}, error) {
-	scope, ok := env.GetScopeFor(id.Name)
+	varEnv, ok := env.Lookup(id.Name)
 	if !ok {
 		return nil, fmt.Errorf("Undefined variable '%s'.\n[line %d]", id.Name, id.Line)
 	}
 
-	return scope.Bindings[id.Name], nil
+	return varEnv.Bindings[id.Name], nil
 }
 
 func (id *IdentifierExpr) String() string {
@@ -237,7 +237,7 @@ type AssignmentExpr struct {
 }
 
 func (as *AssignmentExpr) Eval(env *Environment) (interface{}, error) {
-	scope, ok := env.GetScopeFor(as.Name)
+	varEnv, ok := env.Lookup(as.Name)
 	if !ok {
 		return nil, fmt.Errorf("Undefined variable '%s'.\n[line %d]", as.Name, as.Line)
 	}
@@ -247,7 +247,7 @@ func (as *AssignmentExpr) Eval(env *Environment) (interface{}, error) {
 		return nil, err
 	}
 
-	scope.SetBinding(as.Name, val)
+	varEnv.SetBinding(as.Name, val)
 
 	return val, nil
 }
@@ -283,11 +283,7 @@ func (c *CallExpr) Eval(env *Environment) (interface{}, error) {
 		as = append(as, v)
 	}
 
-	return caller.Call(as...)
-}
-
-func (c *CallExpr) String() string {
-	return ""
+	return caller.Call(env, as...)
 }
 
 type Statement interface {
@@ -298,34 +294,6 @@ type NoopStmt struct{}
 
 func (ns *NoopStmt) Execute(_ *Environment) (interface{}, error) { return nil, nil }
 
-type FunCaller struct {
-	Name   string
-	Params []IdentifierExpr
-	Body   Statement
-}
-
-func (fc *FunCaller) String() string {
-	return fmt.Sprintf("<fn %s>", fc.Name)
-}
-
-func (fc *FunCaller) Call(args ...interface{}) (interface{}, error) {
-	if len(args) != len(fc.Params) {
-		panic("for now")
-	}
-
-	var localEnv Environment
-
-	localEnv.GrowScopes()
-	currScope := localEnv.GetInnermostScope()
-
-	for i := 0; i < len(fc.Params); i++ {
-		currScope.SetBinding(fc.Params[i].Name, args[i])
-	}
-
-	_, err := fc.Body.Execute(&localEnv)
-	return nil, err
-}
-
 type FunDeclStmt struct {
 	Name   string
 	Params []IdentifierExpr
@@ -333,15 +301,13 @@ type FunDeclStmt struct {
 }
 
 func (f *FunDeclStmt) Execute(env *Environment) (interface{}, error) {
-	scope := env.GetInnermostScope()
-
 	fc := FunCaller{
 		Name:   f.Name,
 		Params: f.Params,
 		Body:   f.Body,
 	}
 
-	scope.SetBinding(f.Name, &fc)
+	env.SetBinding(f.Name, &fc)
 
 	return nil, nil
 }
@@ -352,14 +318,12 @@ type VarDeclStmt struct {
 }
 
 func (v *VarDeclStmt) Execute(env *Environment) (interface{}, error) {
-	scope := env.GetInnermostScope()
-
 	val, err := v.Expr.Eval(env)
 	if err != nil {
 		return nil, err
 	}
 
-	scope.SetBinding(v.Name, val)
+	env.SetBinding(v.Name, val)
 
 	return nil, nil
 }
@@ -397,13 +361,10 @@ type BlockStatement struct {
 }
 
 func (b *BlockStatement) Execute(env *Environment) (interface{}, error) {
-	env.GrowScopes()
-	defer func() {
-		env.CloseInnermostScope()
-	}()
+	localEnv := ExpandEnv(env)
 
 	for _, stmt := range b.Stmts {
-		_, err := stmt.Execute(env)
+		_, err := stmt.Execute(localEnv)
 		if err != nil {
 			return nil, err
 		}
@@ -452,6 +413,75 @@ func (ws *WhileStmt) Execute(env *Environment) (interface{}, error) {
 			return nil, err
 		}
 	}
+}
+
+type ReturnValue struct {
+	Value interface{}
+}
+
+type ReturnStmt struct {
+	Expr Expression
+}
+
+func (rs *ReturnStmt) Execute(env *Environment) (interface{}, error) {
+	val, err := rs.Expr.Eval(env)
+	if err != nil {
+		return nil, err
+	}
+
+	// panic is used here in order to quickly unwind the interpreter back to the code
+	// that started executing the body.
+	panic(ReturnValue{Value: val})
+}
+
+type Caller interface {
+	Call(env *Environment, args ...interface{}) (interface{}, error)
+}
+
+type NativeClock struct{}
+
+func (nc *NativeClock) Call(_ *Environment, _ ...interface{}) (interface{}, error) {
+	return float64(time.Now().Unix()), nil
+}
+
+func (nc *NativeClock) String() string {
+	return "<native fn>"
+}
+
+type FunCaller struct {
+	Name   string
+	Params []IdentifierExpr
+	Body   Statement
+}
+
+func (fc *FunCaller) Call(env *Environment, args ...interface{}) (ret interface{}, err error) {
+	if len(args) != len(fc.Params) {
+		panic("for now")
+	}
+
+	localEnv := ExpandEnv(env)
+
+	for i := 0; i < len(fc.Params); i++ {
+		localEnv.SetBinding(fc.Params[i].Name, args[i])
+	}
+
+	defer func() {
+		if res := recover(); res != nil {
+			if rv, ok := res.(ReturnValue); ok {
+				ret = rv.Value
+				return
+			}
+
+			panic(res)
+		}
+	}()
+
+	_, err = fc.Body.Execute(localEnv)
+	return
+}
+
+func (fc *FunCaller) String() string {
+	return fmt.Sprintf("<fn %s>", fc.Name)
 }
 
 func isTrue(val interface{}) bool {
