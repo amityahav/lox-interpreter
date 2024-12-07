@@ -391,11 +391,6 @@ func (p *Parser) parseForStatement() (Statement, error) {
 		initializer = i
 	}
 
-	token, ok = p.nextToken()
-	if !ok {
-		return nil, fmt.Errorf("Error: Expected ';' or expression, got EOF.")
-	}
-
 	var condition Expression = &NoopExpr{}
 
 	_, err = p.match(SEMICOLON)
