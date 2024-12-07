@@ -337,7 +337,7 @@ func (f *FunDeclStmt) Execute(env *Environment) (interface{}, error) {
 		Body:   f.Body,
 	}
 
-	scope.SetBinding(f.Name, fc)
+	scope.SetBinding(f.Name, &fc)
 
 	return nil, nil
 }

@@ -1,1 +1,2 @@
-print clock();
+fun baz() { print 87; }
+baz();
