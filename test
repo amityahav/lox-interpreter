@@ -1,1 +1,6 @@
-for (var baz = 0; baz < 3;) print baz = baz + 1;
+{
+ var hello = 81;
+ var bar = 81;
+ {
+    print hello + bar;
+}

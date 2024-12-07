@@ -133,7 +133,6 @@ func (p *Parser) parseFunction() (Statement, error) {
 	}, nil
 }
 
-// parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
 func (p *Parser) parseParameters() ([]IdentifierExpr, error) {
 	var params []IdentifierExpr
 
@@ -148,12 +147,10 @@ func (p *Parser) parseParameters() ([]IdentifierExpr, error) {
 	})
 
 	for {
-		token, ok := p.peek()
-		if !ok || !token.Type.Is(COMMA) {
+		token, err := p.match(COMMA)
+		if err != nil {
 			break
 		}
-
-		p.nextToken()
 
 		token, err = p.match(IDENTIFIER)
 		if err != nil {
@@ -263,6 +260,10 @@ func (p *Parser) parseBlockStatement() (Statement, error) {
 	for {
 		_, err := p.match(RIGHT_BRACE)
 		if err != nil {
+			if errors.Is(err, UnexpectedEOF) {
+				return nil, err
+			}
+
 			stmt, err := p.parseDeclaration()
 			if err != nil {
 				return nil, err
@@ -734,7 +735,7 @@ func (p *Parser) match(tokenType TokenType, tokenTypes ...TokenType) (*Token, er
 	token, ok := p.nextToken()
 	if !ok {
 		p.goBack()
-		return nil, fmt.Errorf("Error: Expected '%s', got EOF.", string(tokenType))
+		return nil, fmt.Errorf("Error: Expected '%s', got %w.", string(tokenType), UnexpectedEOF)
 	}
 
 	if !token.Type.Is(tokenType) && !slices.Contains(tokenTypes, token.Type) {
@@ -761,4 +762,7 @@ func (p *Parser) goBack() {
 	p.pos--
 }
 
-var ErrNoMoreTokens = fmt.Errorf("no more tokens")
+var (
+	ErrNoMoreTokens = fmt.Errorf("no more tokens")
+	UnexpectedEOF   = fmt.Errorf("unexpected EOF")
+)
