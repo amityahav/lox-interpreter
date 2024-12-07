@@ -14,7 +14,7 @@ type Caller interface {
 type NativeClock struct{}
 
 func (nc *NativeClock) Call(_ ...interface{}) (interface{}, error) {
-	return time.Now().Unix(), nil
+	return float64(time.Now().Unix()), nil
 }
 
 type Scope struct {
