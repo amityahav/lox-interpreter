@@ -308,10 +308,10 @@ type FunDeclStmt struct {
 
 func (f *FunDeclStmt) Execute(env *Environment) (interface{}, error) {
 	fc := FunCaller{
-		Name:   f.Name,
-		Params: f.Params,
-		Body:   f.Body,
-		env:    env,
+		Name:    f.Name,
+		Params:  f.Params,
+		Body:    f.Body,
+		closure: env,
 	}
 
 	env.SetBinding(f.Name, &fc)
@@ -463,11 +463,11 @@ type FunCaller struct {
 	Params []IdentifierExpr
 	Body   Statement
 
-	env *Environment
+	closure *Environment
 }
 
 func (fc *FunCaller) Call(args ...interface{}) (ret interface{}, err error) {
-	localEnv := ExpandEnv(fc.env)
+	localEnv := ExpandEnv(fc.closure)
 
 	for i := 0; i < len(fc.Params); i++ {
 		localEnv.SetBinding(fc.Params[i].Name, args[i])
