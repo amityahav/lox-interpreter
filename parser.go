@@ -649,7 +649,7 @@ func (p *Parser) parseCall() (Expression, error) {
 	}
 
 	for {
-		_, err = p.match(LEFT_PAREN)
+		token, err := p.match(LEFT_PAREN)
 		if err != nil {
 			break
 		}
@@ -672,6 +672,7 @@ func (p *Parser) parseCall() (Expression, error) {
 		expr = &CallExpr{
 			Callee: expr,
 			Args:   args,
+			Line:   token.Line,
 		}
 	}
 

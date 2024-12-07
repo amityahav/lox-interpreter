@@ -259,6 +259,7 @@ func (as *AssignmentExpr) String() string {
 type CallExpr struct {
 	Callee Expression
 	Args   []Expression
+	Line   int
 }
 
 func (c *CallExpr) Eval(env *Environment) (interface{}, error) {
@@ -269,7 +270,12 @@ func (c *CallExpr) Eval(env *Environment) (interface{}, error) {
 
 	caller, ok := val.(Caller)
 	if !ok {
-		panic("not a function")
+		return nil, fmt.Errorf("Can only call functions and classes.\n[line %d]", c.Line)
+	}
+
+	arity := caller.Arity()
+	if arity != len(c.Args) {
+		return nil, fmt.Errorf("Expected %d arguments but got %d.\n[line %d]", arity, len(c.Args), c.Line)
 	}
 
 	var as []interface{}
@@ -437,6 +443,7 @@ func (rs *ReturnStmt) Execute(env *Environment) (interface{}, error) {
 
 type Caller interface {
 	Call(args ...interface{}) (interface{}, error)
+	Arity() int
 }
 
 type NativeClock struct{}
@@ -444,6 +451,8 @@ type NativeClock struct{}
 func (nc *NativeClock) Call(_ ...interface{}) (interface{}, error) {
 	return float64(time.Now().Unix()), nil
 }
+
+func (nc *NativeClock) Arity() int { return 0 }
 
 func (nc *NativeClock) String() string {
 	return "<native fn>"
@@ -458,10 +467,6 @@ type FunCaller struct {
 }
 
 func (fc *FunCaller) Call(args ...interface{}) (ret interface{}, err error) {
-	if len(args) != len(fc.Params) {
-		panic("for now")
-	}
-
 	localEnv := ExpandEnv(fc.env)
 
 	for i := 0; i < len(fc.Params); i++ {
@@ -482,6 +487,8 @@ func (fc *FunCaller) Call(args ...interface{}) (ret interface{}, err error) {
 	_, err = fc.Body.Execute(localEnv)
 	return
 }
+
+func (fc *FunCaller) Arity() int { return len(fc.Params) }
 
 func (fc *FunCaller) String() string {
 	return fmt.Sprintf("<fn %s>", fc.Name)
