@@ -1,6 +1,6 @@
 ## Lox Interpreter
 
-Created from scratch and with minimum hints using this amazing [tutorial](craftinginterpreters.com)!. 
+Created from scratch and with minimum hints using this amazing [tutorial](https://craftinginterpreters.com)!. 
 
 ### How to run:
 
