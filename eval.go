@@ -283,7 +283,7 @@ func (c *CallExpr) Eval(env *Environment) (interface{}, error) {
 		as = append(as, v)
 	}
 
-	return caller.Call(env, as...)
+	return caller.Call(as...)
 }
 
 type Statement interface {
@@ -305,6 +305,7 @@ func (f *FunDeclStmt) Execute(env *Environment) (interface{}, error) {
 		Name:   f.Name,
 		Params: f.Params,
 		Body:   f.Body,
+		env:    env,
 	}
 
 	env.SetBinding(f.Name, &fc)
@@ -435,12 +436,12 @@ func (rs *ReturnStmt) Execute(env *Environment) (interface{}, error) {
 }
 
 type Caller interface {
-	Call(env *Environment, args ...interface{}) (interface{}, error)
+	Call(args ...interface{}) (interface{}, error)
 }
 
 type NativeClock struct{}
 
-func (nc *NativeClock) Call(_ *Environment, _ ...interface{}) (interface{}, error) {
+func (nc *NativeClock) Call(_ ...interface{}) (interface{}, error) {
 	return float64(time.Now().Unix()), nil
 }
 
@@ -452,14 +453,16 @@ type FunCaller struct {
 	Name   string
 	Params []IdentifierExpr
 	Body   Statement
+
+	env *Environment
 }
 
-func (fc *FunCaller) Call(env *Environment, args ...interface{}) (ret interface{}, err error) {
+func (fc *FunCaller) Call(args ...interface{}) (ret interface{}, err error) {
 	if len(args) != len(fc.Params) {
 		panic("for now")
 	}
 
-	localEnv := ExpandEnv(env)
+	localEnv := ExpandEnv(fc.env)
 
 	for i := 0; i < len(fc.Params); i++ {
 		localEnv.SetBinding(fc.Params[i].Name, args[i])

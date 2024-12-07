@@ -1,11 +1,29 @@
-var globalGreeting = "Hello";
+ fun makeFilter(min) {
+   fun filter(n) {
+     if (n < min) {
+       return false;
+     }
+     return true;
+   }
+   return filter;
+ }
 
-fun makeGreeter() {
-  fun greet(name) {
-    print globalGreeting + " " + name;
-  }
-  return greet;
-}
+ // This function applies a function to a list of numbers
+ fun applyToNumbers(f, count) {
+   var n = 0;
+   while (n < count) {
+     if (f(n)) {
+       print n;
+     }
+     n = n + 1;
+   }
+ }
 
-var sayHello = makeGreeter();
-sayHello("Bob");
+ var greaterThanX = makeFilter(32);
+ var greaterThanY = makeFilter(74);
+
+ print "Numbers >= 32:";
+ applyToNumbers(greaterThanX, 32 + 6);
+
+ print "Numbers >= 74:";
+ applyToNumbers(greaterThanY, 74 + 6);
