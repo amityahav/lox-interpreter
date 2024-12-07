@@ -1,2 +1,2 @@
-fun baz() { print 87; }
-baz();
+fun foo() {}
+print foo;

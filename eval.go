@@ -304,6 +304,10 @@ type FunCaller struct {
 	Body   Statement
 }
 
+func (fc *FunCaller) String() string {
+	return fmt.Sprintf("<fn %s>", fc.Name)
+}
+
 func (fc *FunCaller) Call(args ...interface{}) (interface{}, error) {
 	if len(args) != len(fc.Params) {
 		panic("for now")
