@@ -1,8 +1,11 @@
-fun fib(n) {
-  if (n < 2) return n;
-  return fib(n - 2) + fib(n - 1);
+var globalGreeting = "Hello";
+
+fun makeGreeter() {
+  fun greet(name) {
+    print globalGreeting + " " + name;
+  }
+  return greet;
 }
 
-var start = clock();
-print fib(32) == 2178309;
-print (clock() - start) < 5; // 5 seconds
+var sayHello = makeGreeter();
+sayHello("Bob");
