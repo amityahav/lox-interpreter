@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+
 	"os"
 )
 
@@ -55,7 +56,7 @@ func main() {
 		}
 
 		p := NewParser(tokens)
-		for expr, err := p.NextExpression(nil); !errors.Is(err, ErrNoMoreTokens); expr, err = p.NextExpression(nil) {
+		for expr, err := p.NextExpression(); !errors.Is(err, ErrNoMoreTokens); expr, err = p.NextExpression() {
 			if err != nil {
 				errFound = true
 				fmt.Fprintln(os.Stderr, err.Error()+"\n")
@@ -79,12 +80,12 @@ func main() {
 		}
 
 		p := NewParser(tokens)
-		for expr, err := p.NextExpression(nil); !errors.Is(err, ErrNoMoreTokens); expr, err = p.NextExpression(nil) {
+		for expr, err := p.NextExpression(); !errors.Is(err, ErrNoMoreTokens); expr, err = p.NextExpression() {
 			if err != nil {
 				errFound = true
 				fmt.Fprintln(os.Stderr, err.Error()+"\n")
 			} else {
-				v, err := expr.Eval()
+				v, err := expr.Eval(nil)
 				if err != nil {
 					errFound = true
 					fmt.Fprintln(os.Stderr, err.Error()+"\n")

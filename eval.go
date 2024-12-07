@@ -6,13 +6,13 @@ import (
 )
 
 type Expression interface {
-	Eval() (interface{}, error)
+	Eval(env *Environment) (interface{}, error)
 	String() string
 }
 
 type NoopExpr struct{}
 
-func (ne *NoopExpr) Eval() (interface{}, error) { return nil, nil }
+func (ne *NoopExpr) Eval(_ *Environment) (interface{}, error) { return nil, nil }
 
 func (ne *NoopExpr) String() string { return "" }
 
@@ -21,7 +21,7 @@ type LiteralExpr struct {
 	Line    int
 }
 
-func (le *LiteralExpr) Eval() (interface{}, error) {
+func (le *LiteralExpr) Eval(_ *Environment) (interface{}, error) {
 	return le.Literal, nil
 }
 
@@ -45,8 +45,8 @@ type UnaryExpr struct {
 	Line  int
 }
 
-func (ue *UnaryExpr) Eval() (interface{}, error) {
-	val, err := ue.Expr.Eval()
+func (ue *UnaryExpr) Eval(env *Environment) (interface{}, error) {
+	val, err := ue.Expr.Eval(env)
 	if err != nil {
 		return nil, err
 	}
@@ -78,13 +78,13 @@ type BinaryExpr struct {
 	Line      int
 }
 
-func (be *BinaryExpr) Eval() (interface{}, error) {
-	leftVal, err := be.LeftExpr.Eval()
+func (be *BinaryExpr) Eval(env *Environment) (interface{}, error) {
+	leftVal, err := be.LeftExpr.Eval(env)
 	if err != nil {
 		return nil, err
 	}
 
-	rightVal, err := be.RightExpr.Eval()
+	rightVal, err := be.RightExpr.Eval(env)
 	if err != nil {
 		return nil, err
 	}
@@ -154,10 +154,10 @@ type LogicalExpr struct {
 	RightExpr Expression
 }
 
-func (le *LogicalExpr) Eval() (interface{}, error) {
+func (le *LogicalExpr) Eval(env *Environment) (interface{}, error) {
 	switch TokenType(le.Operator) {
 	case OR:
-		lv, err := le.LeftExpr.Eval()
+		lv, err := le.LeftExpr.Eval(env)
 		if err != nil {
 			return nil, err
 		}
@@ -166,14 +166,14 @@ func (le *LogicalExpr) Eval() (interface{}, error) {
 			return lv, nil
 		}
 
-		rv, err := le.RightExpr.Eval()
+		rv, err := le.RightExpr.Eval(env)
 		if err != nil {
 			return nil, err
 		}
 
 		return rv, nil
 	case AND:
-		lv, err := le.LeftExpr.Eval()
+		lv, err := le.LeftExpr.Eval(env)
 		if err != nil {
 			return nil, err
 		}
@@ -182,7 +182,7 @@ func (le *LogicalExpr) Eval() (interface{}, error) {
 			return lv, nil
 		}
 
-		rv, err := le.RightExpr.Eval()
+		rv, err := le.RightExpr.Eval(env)
 		if err != nil {
 			return nil, err
 		}
@@ -204,8 +204,8 @@ type GroupingExpr struct {
 	Line int
 }
 
-func (ge *GroupingExpr) Eval() (interface{}, error) {
-	return ge.Expr.Eval()
+func (ge *GroupingExpr) Eval(env *Environment) (interface{}, error) {
+	return ge.Expr.Eval(env)
 }
 
 func (ge *GroupingExpr) String() string {
@@ -215,12 +215,10 @@ func (ge *GroupingExpr) String() string {
 type IdentifierExpr struct {
 	Name string
 	Line int
-
-	state *Environment
 }
 
-func (id *IdentifierExpr) Eval() (interface{}, error) {
-	scope, ok := id.state.GetScopeFor(id.Name)
+func (id *IdentifierExpr) Eval(env *Environment) (interface{}, error) {
+	scope, ok := env.GetScopeFor(id.Name)
 	if !ok {
 		return nil, fmt.Errorf("Undefined variable '%s'.\n[line %d]", id.Name, id.Line)
 	}
@@ -236,17 +234,15 @@ type AssignmentExpr struct {
 	Name string
 	Expr Expression
 	Line int
-
-	state *Environment
 }
 
-func (as *AssignmentExpr) Eval() (interface{}, error) {
-	scope, ok := as.state.GetScopeFor(as.Name)
+func (as *AssignmentExpr) Eval(env *Environment) (interface{}, error) {
+	scope, ok := env.GetScopeFor(as.Name)
 	if !ok {
 		return nil, fmt.Errorf("Undefined variable '%s'.\n[line %d]", as.Name, as.Line)
 	}
 
-	val, err := as.Expr.Eval()
+	val, err := as.Expr.Eval(env)
 	if err != nil {
 		return nil, err
 	}
@@ -265,8 +261,8 @@ type CallExpr struct {
 	Args   []Expression
 }
 
-func (c *CallExpr) Eval() (interface{}, error) {
-	val, err := c.Callee.Eval()
+func (c *CallExpr) Eval(env *Environment) (interface{}, error) {
+	val, err := c.Callee.Eval(env)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +275,7 @@ func (c *CallExpr) Eval() (interface{}, error) {
 	var as []interface{}
 
 	for _, arg := range c.Args {
-		v, err := arg.Eval()
+		v, err := arg.Eval(env)
 		if err != nil {
 			return nil, err
 		}
@@ -295,24 +291,66 @@ func (c *CallExpr) String() string {
 }
 
 type Statement interface {
-	Execute() (interface{}, error)
+	Execute(env *Environment) (interface{}, error)
 }
 
 type NoopStmt struct{}
 
-func (ns *NoopStmt) Execute() (interface{}, error) { return nil, nil }
+func (ns *NoopStmt) Execute(_ *Environment) (interface{}, error) { return nil, nil }
+
+type FunCaller struct {
+	Name   string
+	Params []IdentifierExpr
+	Body   Statement
+}
+
+func (fc *FunCaller) Call(args ...interface{}) (interface{}, error) {
+	if len(args) != len(fc.Params) {
+		panic("for now")
+	}
+
+	var localEnv Environment
+
+	localEnv.GrowScopes()
+	currScope := localEnv.GetInnermostScope()
+
+	for i := 0; i < len(fc.Params); i++ {
+		currScope.SetBinding(fc.Params[i].Name, args[i])
+	}
+
+	_, err := fc.Body.Execute(&localEnv)
+	return nil, err
+}
+
+type FunDeclStmt struct {
+	Name   string
+	Params []IdentifierExpr
+	Body   Statement
+}
+
+func (f *FunDeclStmt) Execute(env *Environment) (interface{}, error) {
+	scope := env.GetInnermostScope()
+
+	fc := FunCaller{
+		Name:   f.Name,
+		Params: f.Params,
+		Body:   f.Body,
+	}
+
+	scope.SetBinding(f.Name, fc)
+
+	return nil, nil
+}
 
 type VarDeclStmt struct {
 	Name string
 	Expr Expression
-
-	state *Environment
 }
 
-func (v *VarDeclStmt) Execute() (interface{}, error) {
-	scope := v.state.GetInnermostScope()
+func (v *VarDeclStmt) Execute(env *Environment) (interface{}, error) {
+	scope := env.GetInnermostScope()
 
-	val, err := v.Expr.Eval()
+	val, err := v.Expr.Eval(env)
 	if err != nil {
 		return nil, err
 	}
@@ -326,16 +364,16 @@ type ExprStmt struct {
 	Expr Expression
 }
 
-func (es *ExprStmt) Execute() (interface{}, error) {
-	return es.Expr.Eval()
+func (es *ExprStmt) Execute(env *Environment) (interface{}, error) {
+	return es.Expr.Eval(env)
 }
 
 type PrintStmt struct {
 	Expr Expression
 }
 
-func (ps *PrintStmt) Execute() (interface{}, error) {
-	val, err := ps.Expr.Eval()
+func (ps *PrintStmt) Execute(env *Environment) (interface{}, error) {
+	val, err := ps.Expr.Eval(env)
 	if err != nil {
 		return nil, err
 	}
@@ -352,20 +390,16 @@ func (ps *PrintStmt) Execute() (interface{}, error) {
 
 type BlockStatement struct {
 	Stmts []Statement
-
-	state *Environment
 }
 
-func (b *BlockStatement) Execute() (interface{}, error) {
-	// start a new scope
-	b.state.GrowScopes()
+func (b *BlockStatement) Execute(env *Environment) (interface{}, error) {
+	env.GrowScopes()
 	defer func() {
-		// close scope
-		b.state.CloseInnermostScope()
+		env.CloseInnermostScope()
 	}()
 
 	for _, stmt := range b.Stmts {
-		_, err := stmt.Execute()
+		_, err := stmt.Execute(env)
 		if err != nil {
 			return nil, err
 		}
@@ -380,17 +414,17 @@ type IfStmt struct {
 	Else      Statement
 }
 
-func (is *IfStmt) Execute() (interface{}, error) {
-	cond, err := is.Condition.Eval()
+func (is *IfStmt) Execute(env *Environment) (interface{}, error) {
+	cond, err := is.Condition.Eval(env)
 	if err != nil {
 		return nil, err
 	}
 
 	if isTrue(cond) {
-		return is.Then.Execute()
+		return is.Then.Execute(env)
 	}
 
-	return is.Else.Execute()
+	return is.Else.Execute(env)
 }
 
 type WhileStmt struct {
@@ -398,9 +432,9 @@ type WhileStmt struct {
 	Body      Statement
 }
 
-func (ws *WhileStmt) Execute() (interface{}, error) {
+func (ws *WhileStmt) Execute(env *Environment) (interface{}, error) {
 	for {
-		expr, err := ws.Condition.Eval()
+		expr, err := ws.Condition.Eval(env)
 		if err != nil {
 			return nil, err
 		}
@@ -409,7 +443,7 @@ func (ws *WhileStmt) Execute() (interface{}, error) {
 			return nil, nil
 		}
 
-		_, err = ws.Body.Execute()
+		_, err = ws.Body.Execute(env)
 		if err != nil {
 			return nil, err
 		}

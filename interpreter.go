@@ -58,12 +58,12 @@ func (e *Environment) GetScopeFor(name string) (*Scope, bool) {
 }
 
 type Interpreter struct {
-	state Environment
+	env Environment
 }
 
 func NewInterpreter() *Interpreter {
 	return &Interpreter{
-		state: Environment{Scopes: []*Scope{{map[string]interface{}{
+		env: Environment{Scopes: []*Scope{{map[string]interface{}{
 			"clock": &NativeClock{},
 		}}}}, // first scope is the global scope
 	}
@@ -84,13 +84,13 @@ func (i *Interpreter) Interpret(content []byte) error {
 
 	parser := NewParser(tokens)
 
-	for stmt, err := parser.NextDeclaration(&i.state); !errors.Is(err, ErrNoMoreTokens); stmt, err = parser.NextDeclaration(&i.state) {
+	for stmt, err := parser.NextDeclaration(); !errors.Is(err, ErrNoMoreTokens); stmt, err = parser.NextDeclaration() {
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, err.Error())
 			os.Exit(65)
 		}
 
-		_, err = stmt.Execute()
+		_, err = stmt.Execute(&i.env)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, err.Error())
 			os.Exit(70)
