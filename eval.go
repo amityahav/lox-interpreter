@@ -10,11 +10,11 @@ type Expression interface {
 	Eval(env *Environment) (interface{}, error)
 }
 
-type NoopExpr struct{}
+type NilExpr struct{}
 
-func (ne *NoopExpr) Eval(_ *Environment) (interface{}, error) { return nil, nil }
+func (ne *NilExpr) Eval(_ *Environment) (interface{}, error) { return nil, nil }
 
-func (ne *NoopExpr) String() string { return "" }
+func (ne *NilExpr) String() string { return "nil" }
 
 type LiteralExpr struct {
 	Literal interface{}
@@ -26,10 +26,6 @@ func (le *LiteralExpr) Eval(_ *Environment) (interface{}, error) {
 }
 
 func (le *LiteralExpr) String() string {
-	if le.Literal == nil {
-		return "nil"
-	}
-
 	if v, ok := le.Literal.(float64); ok {
 		if v == float64(int64(v)) {
 			return fmt.Sprintf("%.1f", v)
@@ -296,9 +292,9 @@ type Statement interface {
 	Execute(env *Environment) (interface{}, error)
 }
 
-type NoopStmt struct{}
+type NilStmt struct{}
 
-func (ns *NoopStmt) Execute(_ *Environment) (interface{}, error) { return nil, nil }
+func (ns *NilStmt) Execute(_ *Environment) (interface{}, error) { return nil, nil }
 
 type FunDeclStmt struct {
 	Name   string
@@ -351,11 +347,6 @@ func (ps *PrintStmt) Execute(env *Environment) (interface{}, error) {
 	val, err := ps.Expr.Eval(env)
 	if err != nil {
 		return nil, err
-	}
-
-	if val == nil {
-		fmt.Println("nil")
-		return nil, nil
 	}
 
 	fmt.Println(val)
@@ -422,9 +413,7 @@ func (ws *WhileStmt) Execute(env *Environment) (interface{}, error) {
 	}
 }
 
-type ReturnValue struct {
-	Value interface{}
-}
+type ReturnValue any
 
 type ReturnStmt struct {
 	Expr Expression
@@ -438,7 +427,7 @@ func (rs *ReturnStmt) Execute(env *Environment) (interface{}, error) {
 
 	// panic is used here in order to quickly unwind the interpreter back to the code
 	// that started executing the body.
-	panic(ReturnValue{Value: val})
+	panic(ReturnValue(val))
 }
 
 type Caller interface {
@@ -476,7 +465,7 @@ func (fc *FunCaller) Call(args ...interface{}) (ret interface{}, err error) {
 	defer func() {
 		if res := recover(); res != nil {
 			if rv, ok := res.(ReturnValue); ok {
-				ret = rv.Value
+				ret = rv
 				return
 			}
 

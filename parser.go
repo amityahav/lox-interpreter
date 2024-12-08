@@ -179,7 +179,7 @@ func (p *Parser) parseVarDeclaration() (Statement, error) {
 	}
 
 	varName := token.Lexeme
-	var expr Expression = &NoopExpr{}
+	var expr Expression = &NilExpr{}
 
 	token, err = p.match(SEMICOLON)
 	if err != nil {
@@ -309,7 +309,7 @@ func (p *Parser) parseIfStatement() (Statement, error) {
 		return nil, err
 	}
 
-	var els Statement = &NoopStmt{}
+	var els Statement = &NilStmt{}
 
 	_, err = p.match(ELSE)
 	if err == nil {
@@ -374,7 +374,7 @@ func (p *Parser) parseForStatement() (Statement, error) {
 		return nil, fmt.Errorf("Error: Expected statment, got EOF.")
 	}
 
-	var initializer Statement = &NoopStmt{}
+	var initializer Statement = &NilStmt{}
 
 	switch token.Type {
 	case VAR:
@@ -395,7 +395,7 @@ func (p *Parser) parseForStatement() (Statement, error) {
 		initializer = i
 	}
 
-	var condition Expression = &NoopExpr{}
+	var condition Expression = &NilExpr{}
 
 	_, err = p.match(SEMICOLON)
 	if err != nil {
@@ -412,7 +412,7 @@ func (p *Parser) parseForStatement() (Statement, error) {
 		condition = expr
 	}
 
-	var increment Expression = &NoopExpr{}
+	var increment Expression = &NilExpr{}
 
 	_, err = p.match(RIGHT_PAREN)
 	if err != nil {
@@ -457,7 +457,7 @@ func (p *Parser) parseReturnStatement() (Statement, error) {
 		return nil, err
 	}
 
-	var expr Expression = &NoopExpr{}
+	var expr Expression = &NilExpr{}
 
 	_, err = p.match(SEMICOLON)
 	if err != nil {
@@ -713,7 +713,7 @@ func (p *Parser) parsePrimary() (Expression, error) {
 	case FALSE:
 		currExpr = &LiteralExpr{Literal: false, Line: token.Line}
 	case NIL:
-		currExpr = &LiteralExpr{Literal: nil, Line: token.Line}
+		currExpr = &LiteralExpr{Literal: &NilExpr{}, Line: token.Line}
 	case NUMBER, STRING:
 		currExpr = &LiteralExpr{Literal: token.Literal, Line: token.Line}
 	case IDENTIFIER:
