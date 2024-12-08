@@ -278,7 +278,7 @@ func (p *Parser) parseBlockStatement() (Statement, error) {
 		}
 	}
 
-	return &BlockStatement{
+	return &BlockStmt{
 		Stmts: stmts,
 	}, nil
 }
@@ -435,12 +435,12 @@ func (p *Parser) parseForStatement() (Statement, error) {
 	}
 
 	// desugaring for-loop to while-loop
-	return &BlockStatement{
+	return &BlockStmt{
 		Stmts: []Statement{
 			initializer,
 			&WhileStmt{
 				Condition: condition,
-				Body: &BlockStatement{
+				Body: &BlockStmt{
 					Stmts: []Statement{
 						body,
 						&ExprStmt{Expr: increment},
@@ -651,6 +651,10 @@ func (p *Parser) parseCall() (Expression, error) {
 
 		_, err = p.match(RIGHT_PAREN)
 		if err != nil {
+			if errors.Is(err, UnexpectedEOF) {
+				return nil, err
+			}
+
 			args, err = p.parseArguments()
 			if err != nil {
 				return nil, err
@@ -761,7 +765,7 @@ func (p *Parser) match(tokenType TokenType, tokenTypes ...TokenType) (*Token, er
 
 	if !token.Type.Is(tokenType) && !slices.Contains(tokenTypes, token.Type) {
 		p.goBack()
-		return nil, fmt.Errorf("[line %d] Error at '%s': Expected '%s'.", token.Line+1, token.Lexeme)
+		return nil, fmt.Errorf("[line %d] Error at '%s': Expected '%s'.", token.Line+1, token.Lexeme, string(tokenType))
 	}
 
 	return token, nil

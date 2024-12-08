@@ -354,11 +354,11 @@ func (ps *PrintStmt) Execute(env *Environment) (interface{}, error) {
 	return nil, nil
 }
 
-type BlockStatement struct {
+type BlockStmt struct {
 	Stmts []Statement
 }
 
-func (b *BlockStatement) Execute(env *Environment) (interface{}, error) {
+func (b *BlockStmt) Execute(env *Environment) (interface{}, error) {
 	localEnv := ExpandEnv(env)
 
 	for _, stmt := range b.Stmts {
