@@ -288,6 +288,59 @@ func (c *CallExpr) Eval(env *Environment) (interface{}, error) {
 	return caller.Call(as...)
 }
 
+type ObjectGetExpr struct {
+	Object Expression
+	Prop   string
+	Line   int
+}
+
+func (o *ObjectGetExpr) Eval(env *Environment) (interface{}, error) {
+	val, err := o.Object.Eval(env)
+	if err != nil {
+		return nil, err
+	}
+
+	obj, ok := val.(*ClassInstance)
+	if !ok {
+		return nil, fmt.Errorf("Invalid operation, %v not an instance of an object.\n[line %d]", val, o.Line+1)
+	}
+
+	m, ok := obj.Properties[o.Prop]
+	if !ok {
+		return nil, fmt.Errorf("Object %s has no property called %s\n[line %d]", obj.Name, o.Prop, o.Line+1)
+	}
+
+	return m, nil
+}
+
+type ObjectSetExpr struct {
+	Object Expression
+	Prop   string
+	Expr   Expression
+	Line   int
+}
+
+func (o *ObjectSetExpr) Eval(env *Environment) (interface{}, error) {
+	val, err := o.Object.Eval(env)
+	if err != nil {
+		return nil, err
+	}
+
+	obj, ok := val.(*ClassInstance)
+	if !ok {
+		return nil, fmt.Errorf("Invalid operation, %v not an instance of an object.\n[line %d]", val, o.Line+1)
+	}
+
+	val, err = o.Expr.Eval(env)
+	if err != nil {
+		return nil, err
+	}
+
+	obj.Properties[o.Prop] = val
+
+	return nil, nil
+}
+
 type Statement interface {
 	Execute(env *Environment) (interface{}, error)
 }
@@ -295,6 +348,23 @@ type Statement interface {
 type NilStmt struct{}
 
 func (ns *NilStmt) Execute(_ *Environment) (interface{}, error) { return nil, nil }
+
+type ClassDeclStmt struct {
+	Name    string
+	Methods []*FunDeclStmt
+}
+
+func (c *ClassDeclStmt) Execute(env *Environment) (interface{}, error) {
+	cc := ClassCaller{
+		Name:    c.Name,
+		Methods: c.Methods,
+		closure: env,
+	}
+
+	env.SetBinding(c.Name, &cc)
+
+	return nil, nil
+}
 
 type FunDeclStmt struct {
 	Name   string
@@ -312,7 +382,7 @@ func (f *FunDeclStmt) Execute(env *Environment) (interface{}, error) {
 
 	env.SetBinding(f.Name, &fc)
 
-	return nil, nil
+	return &fc, nil
 }
 
 type VarDeclStmt struct {
@@ -445,6 +515,51 @@ func (nc *NativeClock) Arity() int { return 0 }
 
 func (nc *NativeClock) String() string {
 	return "<native fn>"
+}
+
+type ClassInstance struct {
+	Name       string
+	Properties map[string]interface{}
+}
+
+func (ci *ClassInstance) String() string {
+	return fmt.Sprintf("%s instance", ci.Name)
+}
+
+type ClassCaller struct {
+	Name    string
+	Methods []*FunDeclStmt
+
+	closure *Environment
+}
+
+func (cc *ClassCaller) Call(_ ...interface{}) (interface{}, error) {
+	ci := ClassInstance{
+		Name:       cc.Name,
+		Properties: make(map[string]interface{}),
+	}
+
+	localEnv := ExpandEnv(cc.closure)
+
+	// TODO: make sure params cannot shadow "this" keyword
+	localEnv.SetBinding("this", &ci)
+
+	for _, m := range cc.Methods {
+		val, err := m.Execute(localEnv)
+		if err != nil {
+			return nil, err
+		}
+
+		ci.Properties[m.Name] = val
+	}
+
+	return &ci, nil
+}
+
+func (cc *ClassCaller) Arity() int { return 0 }
+
+func (cc *ClassCaller) String() string {
+	return fmt.Sprintf("%s instance", cc.Name)
 }
 
 type FunCaller struct {

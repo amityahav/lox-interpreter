@@ -22,9 +22,12 @@ func NewParser(tokens []*Token) *Parser {
 //
 //	program        → declaration* EOF ;
 //
-//	declaration    → funDecl
+//	declaration    → classDecl
+//					 | funDecl
 //					 | varDecl
-//				     | statement ;
+//	 				 | statement ;
+//
+//	classDecl      → "class" IDENTIFIER "{" function* "}" ;
 //	funDecl        → "fun" function ;
 //	function       → IDENTIFIER "(" parameters? ")" block ;
 // 	parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
@@ -51,6 +54,8 @@ func NewParser(tokens []*Token) *Parser {
 //	expression     → assignment ;
 //	assignment     → IDENTIFIER "=" assignment
 //					 | logic_or ;
+//	assignment     → ( call "." )? IDENTIFIER "=" assignment
+//					 | logic_or ;
 //	logic_or       → logic_and ( "or" logic_and )* ;
 //	logic_and      → equality ( "and" equality )* ;
 //	equality       → comparison ( ( "!=" | "==" ) comparison )* ;
@@ -58,7 +63,7 @@ func NewParser(tokens []*Token) *Parser {
 //	term           → factor ( ( "-" | "+" ) factor )* ;
 //	factor         → unary ( ( "/" | "*" ) unary )* ;
 //	unary          → ( "!" | "-" ) unary | call ;
-//	call           → primary ( "(" arguments? ")" )* ;
+//	call           → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
 //  arguments      → expression ( "," expression )* ;
 //	primary        → "true" | "false" | "nil"
 //					 | NUMBER | STRING
@@ -76,6 +81,8 @@ func (p *Parser) parseDeclaration() (Statement, error) {
 	}
 
 	switch token.Type {
+	case CLASS:
+		return p.parseClassDeclaration()
 	case FUN:
 		return p.parseFunDeclaration()
 	case VAR:
@@ -83,6 +90,50 @@ func (p *Parser) parseDeclaration() (Statement, error) {
 	}
 
 	return p.parseStatement()
+}
+
+func (p *Parser) parseClassDeclaration() (Statement, error) {
+	_, err := p.match(CLASS)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := p.match(IDENTIFIER)
+	if err != nil {
+		return nil, err
+	}
+
+	className := token.Lexeme
+
+	_, err = p.match(LEFT_BRACE)
+	if err != nil {
+		return nil, err
+	}
+
+	var methods []*FunDeclStmt
+
+	for {
+		_, err := p.match(RIGHT_BRACE)
+		if err != nil {
+			if errors.Is(err, ErrUnexpectedEOF) {
+				return nil, err
+			}
+
+			m, err := p.parseFunction()
+			if err != nil {
+				return nil, err
+			}
+
+			methods = append(methods, m)
+		} else {
+			break
+		}
+	}
+
+	return &ClassDeclStmt{
+		Name:    className,
+		Methods: methods,
+	}, nil
 }
 
 func (p *Parser) parseFunDeclaration() (Statement, error) {
@@ -94,7 +145,7 @@ func (p *Parser) parseFunDeclaration() (Statement, error) {
 	return p.parseFunction()
 }
 
-func (p *Parser) parseFunction() (Statement, error) {
+func (p *Parser) parseFunction() (*FunDeclStmt, error) {
 	token, err := p.match(IDENTIFIER)
 	if err != nil {
 		return nil, err
@@ -191,7 +242,7 @@ func (p *Parser) parseVarDeclaration() (Statement, error) {
 		expr, err = p.parseExpression()
 		if err != nil {
 			if errors.Is(err, ErrNoMoreTokens) {
-				return nil, fmt.Errorf("[line %d] Error: Expected expression.", token.Line+1, token.Lexeme)
+				return nil, fmt.Errorf("[line %d] Error: Expected expression.", token.Line+1)
 			}
 
 			return nil, err
@@ -263,7 +314,7 @@ func (p *Parser) parseBlockStatement() (Statement, error) {
 	for {
 		_, err := p.match(RIGHT_BRACE)
 		if err != nil {
-			if errors.Is(err, UnexpectedEOF) {
+			if errors.Is(err, ErrUnexpectedEOF) {
 				return nil, err
 			}
 
@@ -371,7 +422,7 @@ func (p *Parser) parseForStatement() (Statement, error) {
 
 	token, ok := p.peek()
 	if !ok {
-		return nil, fmt.Errorf("Error: Expected statment, got EOF.")
+		return nil, fmt.Errorf("Error: Expected statement, got EOF.")
 	}
 
 	var initializer Statement = &NilStmt{}
@@ -498,20 +549,21 @@ func (p *Parser) parseExpression() (Expression, error) {
 }
 
 func (p *Parser) parseAssignment() (Expression, error) {
-	token, err := p.match(IDENTIFIER)
+	currPos := p.pos
+
+	expr, err := p.parseCall()
 	if err != nil {
+		p.goBack(p.pos - currPos)
 		return p.parseLogicOr()
 	}
 
-	varName := token.Lexeme
-
-	_, err = p.match(EQUAL)
+	token, err := p.match(EQUAL)
 	if err != nil {
-		p.goBack()
+		p.goBack(p.pos - currPos)
 		return p.parseLogicOr()
 	}
 
-	expr, err := p.parseAssignment()
+	assign, err := p.parseAssignment()
 	if err != nil {
 		if errors.Is(err, ErrNoMoreTokens) {
 			return nil, fmt.Errorf("[line %d] Error: Expected expression.", token.Line+1)
@@ -520,11 +572,23 @@ func (p *Parser) parseAssignment() (Expression, error) {
 		return nil, err
 	}
 
-	return &AssignmentExpr{
-		Name: varName,
-		Expr: expr,
-		Line: token.Line,
-	}, nil
+	switch v := expr.(type) {
+	case *ObjectGetExpr:
+		return &ObjectSetExpr{
+			Object: v.Object,
+			Prop:   v.Prop,
+			Expr:   assign,
+			Line:   v.Line,
+		}, nil
+	case *IdentifierExpr:
+		return &AssignmentExpr{
+			Name: v.Name,
+			Expr: assign,
+			Line: v.Line,
+		}, nil
+	default:
+		return nil, fmt.Errorf("[line %d] Error: Unkown expression type %v", token.Line, v)
+	}
 }
 
 func (p *Parser) parseSequenceBinary(parseFunc func() (Expression, error), matcher TokenType, matchers ...TokenType) (Expression, error) {
@@ -642,38 +706,55 @@ func (p *Parser) parseCall() (Expression, error) {
 	}
 
 	for {
-		token, err := p.match(LEFT_PAREN)
-		if err != nil {
-			break
+		token, ok := p.peek()
+		if !ok {
+			return expr, nil
 		}
 
-		var args []Expression
+		switch token.Type {
+		case LEFT_PAREN:
+			var args []Expression
 
-		_, err = p.match(RIGHT_PAREN)
-		if err != nil {
-			if errors.Is(err, UnexpectedEOF) {
-				return nil, err
-			}
-
-			args, err = p.parseArguments()
-			if err != nil {
-				return nil, err
-			}
-
+			p.nextToken()
 			_, err = p.match(RIGHT_PAREN)
 			if err != nil {
+				if errors.Is(err, ErrUnexpectedEOF) {
+					return nil, err
+				}
+
+				args, err = p.parseArguments()
+				if err != nil {
+					return nil, err
+				}
+
+				_, err = p.match(RIGHT_PAREN)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			expr = &CallExpr{
+				Callee: expr,
+				Args:   args,
+				Line:   token.Line,
+			}
+		case DOT:
+			p.nextToken()
+
+			token, err = p.match(IDENTIFIER)
+			if err != nil {
 				return nil, err
 			}
-		}
 
-		expr = &CallExpr{
-			Callee: expr,
-			Args:   args,
-			Line:   token.Line,
+			expr = &ObjectGetExpr{
+				Object: expr,
+				Prop:   token.Lexeme,
+				Line:   token.Line,
+			}
+		default:
+			return expr, nil
 		}
 	}
-
-	return expr, nil
 }
 
 func (p *Parser) parseArguments() ([]Expression, error) {
@@ -720,7 +801,7 @@ func (p *Parser) parsePrimary() (Expression, error) {
 		currExpr = &LiteralExpr{Literal: &NilExpr{}, Line: token.Line}
 	case NUMBER, STRING:
 		currExpr = &LiteralExpr{Literal: token.Literal, Line: token.Line}
-	case IDENTIFIER:
+	case IDENTIFIER, THIS:
 		currExpr = &IdentifierExpr{Name: token.Lexeme, Line: token.Line}
 	case LEFT_PAREN:
 		e, err := p.parseExpression()
@@ -759,12 +840,12 @@ func (p *Parser) nextToken() (*Token, bool) {
 func (p *Parser) match(tokenType TokenType, tokenTypes ...TokenType) (*Token, error) {
 	token, ok := p.nextToken()
 	if !ok {
-		p.goBack()
-		return nil, fmt.Errorf("Error: Expected '%s', got %w.", string(tokenType), UnexpectedEOF)
+		p.goBack(1)
+		return nil, fmt.Errorf("Error: Expected '%s', got %w.", string(tokenType), ErrUnexpectedEOF)
 	}
 
 	if !token.Type.Is(tokenType) && !slices.Contains(tokenTypes, token.Type) {
-		p.goBack()
+		p.goBack(1)
 		return nil, fmt.Errorf("[line %d] Error at '%s': Expected '%s'.", token.Line+1, token.Lexeme, string(tokenType))
 	}
 
@@ -779,15 +860,16 @@ func (p *Parser) peek() (*Token, bool) {
 	return p.tokens[p.pos+1], true
 }
 
-func (p *Parser) goBack() {
-	if p.pos == -1 {
+func (p *Parser) goBack(amount int) {
+	if p.pos-amount <= -1 {
+		p.pos = -1
 		return
 	}
 
-	p.pos--
+	p.pos -= amount
 }
 
 var (
-	ErrNoMoreTokens = fmt.Errorf("no more tokens")
-	UnexpectedEOF   = fmt.Errorf("unexpected EOF")
+	ErrNoMoreTokens  = fmt.Errorf("no more tokens")
+	ErrUnexpectedEOF = fmt.Errorf("unexpected EOF")
 )
