@@ -242,7 +242,7 @@ func (p *Parser) parseVarDeclaration() (Statement, error) {
 		expr, err = p.parseExpression()
 		if err != nil {
 			if errors.Is(err, ErrNoMoreTokens) {
-				return nil, fmt.Errorf("[line %d] Error: Expected expression.", token.Line+1)
+				return nil, fmt.Errorf("[line %d] Error: Expected expression.", token.Line)
 			}
 
 			return nil, err
@@ -566,7 +566,7 @@ func (p *Parser) parseAssignment() (Expression, error) {
 	assign, err := p.parseAssignment()
 	if err != nil {
 		if errors.Is(err, ErrNoMoreTokens) {
-			return nil, fmt.Errorf("[line %d] Error: Expected expression.", token.Line+1)
+			return nil, fmt.Errorf("[line %d] Error: Expected expression.", token.Line)
 		}
 
 		return nil, err
@@ -683,7 +683,7 @@ func (p *Parser) parseUnary() (Expression, error) {
 		u, err := p.parseUnary()
 		if err != nil {
 			if errors.Is(err, ErrNoMoreTokens) {
-				return nil, fmt.Errorf("[line %d] Error at '%s': Expect expression.", token.Line+1, token.Lexeme)
+				return nil, fmt.Errorf("[line %d] Error at '%s': Expect expression.", token.Line, token.Lexeme)
 			}
 
 			return nil, err
@@ -807,7 +807,7 @@ func (p *Parser) parsePrimary() (Expression, error) {
 		e, err := p.parseExpression()
 		if err != nil {
 			if errors.Is(err, ErrNoMoreTokens) {
-				return nil, fmt.Errorf("[line %d] Unbalanced parentheses.", token.Line+1)
+				return nil, fmt.Errorf("[line %d] Unbalanced parentheses.", token.Line)
 			}
 
 			return nil, err
@@ -815,12 +815,12 @@ func (p *Parser) parsePrimary() (Expression, error) {
 
 		n, exists := p.nextToken()
 		if !exists || !n.Type.Is(RIGHT_PAREN) {
-			return nil, fmt.Errorf("[line %d] Unbalanced parentheses.", token.Line+1)
+			return nil, fmt.Errorf("[line %d] Unbalanced parentheses.", token.Line)
 		}
 
 		currExpr = &GroupingExpr{Expr: e, Line: token.Line}
 	default:
-		return nil, fmt.Errorf("[line %d] Error at '%s': Expect expression.", token.Line+1, token.Lexeme)
+		return nil, fmt.Errorf("[line %d] Error at '%s': Expect expression.", token.Line, token.Lexeme)
 	}
 
 	return currExpr, nil
@@ -846,7 +846,7 @@ func (p *Parser) match(tokenType TokenType, tokenTypes ...TokenType) (*Token, er
 
 	if !token.Type.Is(tokenType) && !slices.Contains(tokenTypes, token.Type) {
 		p.goBack(1)
-		return nil, fmt.Errorf("[line %d] Error at '%s': Expected '%s'.", token.Line+1, token.Lexeme, string(tokenType))
+		return nil, fmt.Errorf("[line %d] Error at '%s': Expected '%s'.", token.Line, token.Lexeme, string(tokenType))
 	}
 
 	return token, nil

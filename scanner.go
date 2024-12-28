@@ -187,6 +187,7 @@ type Scanner struct {
 func NewScanner(content []byte) *Scanner {
 	s := Scanner{
 		content: content,
+		lineNum: 1,
 		pos:     -1,
 	}
 
@@ -340,7 +341,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 			for {
 				n, e := s.peek()
 				if !e {
-					return nil, fmt.Errorf("[line %d] Error: Unterminated string.", currToken.Line+1)
+					return nil, fmt.Errorf("[line %d] Error: Unterminated string.", currToken.Line)
 				}
 
 				if TokenType(n).Is(QUOTE) {
@@ -402,7 +403,7 @@ func (s *Scanner) NextToken() (*Token, error) {
 				currToken.Type = TokenType(currToken.Lexeme)
 			}
 		default:
-			errStr := fmt.Sprintf("[line %d] Error: Unexpected character: ", s.lineNum+1) + string(currChar)
+			errStr := fmt.Sprintf("[line %d] Error: Unexpected character: ", s.lineNum) + string(currChar)
 			return nil, errors.New(errStr)
 		}
 

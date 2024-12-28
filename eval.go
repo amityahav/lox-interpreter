@@ -302,12 +302,12 @@ func (o *ObjectGetExpr) Eval(env *Environment) (interface{}, error) {
 
 	obj, ok := val.(*ClassInstance)
 	if !ok {
-		return nil, fmt.Errorf("Invalid operation, %v not an instance of an object.\n[line %d]", val, o.Line+1)
+		return nil, fmt.Errorf("Invalid operation, %v not an instance of an object.\n[line %d]", val, o.Line)
 	}
 
 	m, ok := obj.Properties[o.Prop]
 	if !ok {
-		return nil, fmt.Errorf("Object %s has no property called %s\n[line %d]", obj.Name, o.Prop, o.Line+1)
+		return nil, fmt.Errorf("Object %s has no property called %s\n[line %d]", obj.Name, o.Prop, o.Line)
 	}
 
 	return m, nil
@@ -328,7 +328,7 @@ func (o *ObjectSetExpr) Eval(env *Environment) (interface{}, error) {
 
 	obj, ok := val.(*ClassInstance)
 	if !ok {
-		return nil, fmt.Errorf("Invalid operation, %v not an instance of an object.\n[line %d]", val, o.Line+1)
+		return nil, fmt.Errorf("Invalid operation, %v not an instance of an object.\n[line %d]", val, o.Line)
 	}
 
 	val, err = o.Expr.Eval(env)
@@ -359,6 +359,13 @@ func (c *ClassDeclStmt) Execute(env *Environment) (interface{}, error) {
 		Name:    c.Name,
 		Methods: c.Methods,
 		closure: env,
+	}
+
+	for _, m := range cc.Methods {
+		if m.Name == "init" {
+			cc.arity = len(m.Params)
+			break
+		}
 	}
 
 	env.SetBinding(c.Name, &cc)
@@ -530,10 +537,11 @@ type ClassCaller struct {
 	Name    string
 	Methods []*FunDeclStmt
 
+	arity   int
 	closure *Environment
 }
 
-func (cc *ClassCaller) Call(_ ...interface{}) (interface{}, error) {
+func (cc *ClassCaller) Call(args ...interface{}) (interface{}, error) {
 	ci := ClassInstance{
 		Name:       cc.Name,
 		Properties: make(map[string]interface{}),
@@ -553,10 +561,15 @@ func (cc *ClassCaller) Call(_ ...interface{}) (interface{}, error) {
 		ci.Properties[m.Name] = val
 	}
 
+	if v, ok := ci.Properties["init"]; ok {
+		initializer := v.(Caller)
+		_, _ = initializer.Call(args...)
+	}
+
 	return &ci, nil
 }
 
-func (cc *ClassCaller) Arity() int { return 0 }
+func (cc *ClassCaller) Arity() int { return cc.arity }
 
 func (cc *ClassCaller) String() string {
 	return fmt.Sprintf("%s instance", cc.Name)
