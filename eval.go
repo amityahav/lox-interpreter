@@ -563,7 +563,10 @@ func (cc *ClassCaller) Call(args ...interface{}) (interface{}, error) {
 
 	if v, ok := ci.Properties["init"]; ok {
 		initializer := v.(Caller)
-		_, _ = initializer.Call(args...)
+		_, err := initializer.Call(args...)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &ci, nil
