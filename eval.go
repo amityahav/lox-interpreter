@@ -305,7 +305,7 @@ func (o *ObjectGetExpr) Eval(env *Environment) (interface{}, error) {
 		return nil, fmt.Errorf("Invalid operation, %v not an instance of an object.\n[line %d]", val, o.Line)
 	}
 
-	m, ok := obj.FindMethod(o.Prop)
+	m, ok := obj.findMethod(o.Prop)
 	if ok {
 		return m, nil
 	}
@@ -336,7 +336,7 @@ func (o *ObjectSetExpr) Eval(env *Environment) (interface{}, error) {
 		return nil, fmt.Errorf("Invalid operation, %v not an instance of an object.\n[line %d]", val, o.Line)
 	}
 
-	_, found := obj.FindMethod(o.Prop)
+	_, found := obj.findMethod(o.Prop)
 	if found {
 		return nil, fmt.Errorf("Invalid operation, cant set a method %s of object %s\n[line %d]", o.Prop, obj.Name, o.Line)
 	}
@@ -558,14 +558,14 @@ type ClassInstance struct {
 	Properties         map[string]interface{}
 }
 
-func (ci *ClassInstance) FindMethod(name string) (interface{}, bool) {
+func (ci *ClassInstance) findMethod(name string) (interface{}, bool) {
 	m, ok := ci.Methods[name]
 	if ok {
 		return m, true
 	}
 
 	if ci.SuperClassInstance != nil {
-		return ci.SuperClassInstance.FindMethod(name)
+		return ci.SuperClassInstance.findMethod(name)
 	}
 
 	return nil, false
