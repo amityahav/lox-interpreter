@@ -1,6 +1,5 @@
 class A {
   method() {
-    super.method();
     this.second = "second";
     print "A method";
     print x;
@@ -29,5 +28,6 @@ class C < B {
 var c = C();
 c.test();
 //c.test2();
+c.test = 5;
 print c.first;
 print c.second;
