@@ -305,7 +305,12 @@ func (o *ObjectGetExpr) Eval(env *Environment) (interface{}, error) {
 		return nil, fmt.Errorf("Invalid operation, %v not an instance of an object.\n[line %d]", val, o.Line)
 	}
 
-	m, ok := obj.Properties[o.Prop]
+	m, ok := obj.FindMethod(o.Prop)
+	if ok {
+		return m, nil
+	}
+
+	m, ok = obj.Properties[o.Prop]
 	if !ok {
 		return nil, fmt.Errorf("Object %s has no property called %s\n[line %d]", obj.Name, o.Prop, o.Line)
 	}
@@ -331,6 +336,11 @@ func (o *ObjectSetExpr) Eval(env *Environment) (interface{}, error) {
 		return nil, fmt.Errorf("Invalid operation, %v not an instance of an object.\n[line %d]", val, o.Line)
 	}
 
+	_, found := obj.FindMethod(o.Prop)
+	if found {
+		return nil, fmt.Errorf("Invalid operation, cant set a method %s of object %s\n[line %d]", o.Prop, obj.Name, o.Line)
+	}
+
 	val, err = o.Expr.Eval(env)
 	if err != nil {
 		return nil, err
@@ -350,8 +360,9 @@ type NilStmt struct{}
 func (ns *NilStmt) Execute(_ *Environment) (interface{}, error) { return nil, nil }
 
 type ClassDeclStmt struct {
-	Name    string
-	Methods []*FunDeclStmt
+	Name       string
+	SuperClass *IdentifierExpr
+	Methods    []*FunDeclStmt
 }
 
 func (c *ClassDeclStmt) Execute(env *Environment) (interface{}, error) {
@@ -359,6 +370,20 @@ func (c *ClassDeclStmt) Execute(env *Environment) (interface{}, error) {
 		Name:    c.Name,
 		Methods: c.Methods,
 		closure: env,
+	}
+
+	if c.SuperClass != nil {
+		sc, err := c.SuperClass.Eval(env)
+		if err != nil {
+			return nil, err
+		}
+
+		v, ok := sc.(*ClassCaller)
+		if !ok {
+			return nil, fmt.Errorf("%s must be of class type.\n[line %d]", c.SuperClass.Name, c.SuperClass.Line)
+		}
+
+		cc.SuperClass = v
 	}
 
 	for _, m := range cc.Methods {
@@ -490,7 +515,9 @@ func (ws *WhileStmt) Execute(env *Environment) (interface{}, error) {
 	}
 }
 
-type ReturnValue any
+type ReturnValue struct {
+	Value interface{}
+}
 
 type ReturnStmt struct {
 	Expr Expression
@@ -504,7 +531,7 @@ func (rs *ReturnStmt) Execute(env *Environment) (interface{}, error) {
 
 	// panic is used here in order to quickly unwind the interpreter back to the code
 	// that started executing the body.
-	panic(ReturnValue(val))
+	panic(&ReturnValue{Value: val})
 }
 
 type Caller interface {
@@ -525,8 +552,23 @@ func (nc *NativeClock) String() string {
 }
 
 type ClassInstance struct {
-	Name       string
-	Properties map[string]interface{}
+	Name               string
+	SuperClassInstance *ClassInstance
+	Methods            map[string]interface{}
+	Properties         map[string]interface{}
+}
+
+func (ci *ClassInstance) FindMethod(name string) (interface{}, bool) {
+	m, ok := ci.Methods[name]
+	if ok {
+		return m, true
+	}
+
+	if ci.SuperClassInstance != nil {
+		return ci.SuperClassInstance.FindMethod(name)
+	}
+
+	return nil, false
 }
 
 func (ci *ClassInstance) String() string {
@@ -534,16 +576,52 @@ func (ci *ClassInstance) String() string {
 }
 
 type ClassCaller struct {
-	Name    string
-	Methods []*FunDeclStmt
+	Name       string
+	SuperClass *ClassCaller
+	Methods    []*FunDeclStmt
 
 	arity   int
 	closure *Environment
 }
 
+func (ci *ClassInstance) initSuperClass(env *Environment, superClass *ClassCaller) (*ClassInstance, error) {
+	if superClass == nil {
+		return nil, nil
+	}
+
+	sci := ClassInstance{
+		Name:    superClass.Name,
+		Methods: make(map[string]interface{}),
+	}
+
+	i, err := sci.initSuperClass(env, superClass.SuperClass)
+	if err != nil {
+		return nil, err
+	}
+
+	localEnv := ExpandEnv(env)
+	localEnv.SetBinding("super", nil)
+	if i != nil {
+		localEnv.SetBinding("super", i)
+		sci.SuperClassInstance = i
+	}
+
+	for _, m := range superClass.Methods {
+		val, err := m.Execute(localEnv)
+		if err != nil {
+			return nil, err
+		}
+
+		sci.Methods[m.Name] = val
+	}
+
+	return &sci, nil
+}
+
 func (cc *ClassCaller) Call(args ...interface{}) (interface{}, error) {
 	ci := ClassInstance{
 		Name:       cc.Name,
+		Methods:    map[string]interface{}{},
 		Properties: make(map[string]interface{}),
 	}
 
@@ -552,16 +630,27 @@ func (cc *ClassCaller) Call(args ...interface{}) (interface{}, error) {
 	// TODO: make sure params cannot shadow "this" keyword
 	localEnv.SetBinding("this", &ci)
 
+	sci, err := ci.initSuperClass(localEnv, cc.SuperClass)
+	if err != nil {
+		return nil, err
+	}
+
+	localEnv.SetBinding("super", nil)
+	if sci != nil {
+		localEnv.SetBinding("super", sci)
+		ci.SuperClassInstance = sci
+	}
+
 	for _, m := range cc.Methods {
 		val, err := m.Execute(localEnv)
 		if err != nil {
 			return nil, err
 		}
 
-		ci.Properties[m.Name] = val
+		ci.Methods[m.Name] = val
 	}
 
-	if v, ok := ci.Properties["init"]; ok {
+	if v, ok := ci.Methods["init"]; ok {
 		initializer := v.(Caller)
 		_, err := initializer.Call(args...)
 		if err != nil {
@@ -595,7 +684,7 @@ func (fc *FunCaller) Call(args ...interface{}) (ret interface{}, err error) {
 
 	defer func() {
 		if res := recover(); res != nil {
-			if rv, ok := res.(ReturnValue); ok {
+			if rv, ok := res.(*ReturnValue); ok {
 				ret = rv
 				return
 			}

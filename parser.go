@@ -27,7 +27,8 @@ func NewParser(tokens []*Token) *Parser {
 //					 | varDecl
 //	 				 | statement ;
 //
-//	classDecl      → "class" IDENTIFIER "{" function* "}" ;
+// 	classDecl      → "class" IDENTIFIER ( "<" IDENTIFIER )?
+// 				     "{" function* "}" ;
 //	funDecl        → "fun" function ;
 //	function       → IDENTIFIER "(" parameters? ")" block ;
 // 	parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
@@ -105,6 +106,25 @@ func (p *Parser) parseClassDeclaration() (Statement, error) {
 
 	className := token.Lexeme
 
+	var superClass *IdentifierExpr
+
+	token, err = p.match(LESS)
+	if err == nil {
+		token, err = p.match(IDENTIFIER)
+		if err == nil {
+			if token.Lexeme == className {
+				return nil, fmt.Errorf("[line %d] Error: Class %s cant inherit from itself.", token.Line, className)
+			}
+
+			superClass = &IdentifierExpr{
+				Name: token.Lexeme,
+				Line: token.Line,
+			}
+		} else {
+			return nil, err
+		}
+	}
+
 	_, err = p.match(LEFT_BRACE)
 	if err != nil {
 		return nil, err
@@ -114,25 +134,26 @@ func (p *Parser) parseClassDeclaration() (Statement, error) {
 
 	for {
 		_, err := p.match(RIGHT_BRACE)
-		if err != nil {
-			if errors.Is(err, ErrUnexpectedEOF) {
-				return nil, err
-			}
-
-			m, err := p.parseFunction()
-			if err != nil {
-				return nil, err
-			}
-
-			methods = append(methods, m)
-		} else {
+		if err == nil {
 			break
 		}
+
+		if errors.Is(err, ErrUnexpectedEOF) {
+			return nil, err
+		}
+
+		m, err := p.parseFunction()
+		if err != nil {
+			return nil, err
+		}
+
+		methods = append(methods, m)
 	}
 
 	return &ClassDeclStmt{
-		Name:    className,
-		Methods: methods,
+		Name:       className,
+		SuperClass: superClass,
+		Methods:    methods,
 	}, nil
 }
 
@@ -801,7 +822,7 @@ func (p *Parser) parsePrimary() (Expression, error) {
 		currExpr = &LiteralExpr{Literal: &NilExpr{}, Line: token.Line}
 	case NUMBER, STRING:
 		currExpr = &LiteralExpr{Literal: token.Literal, Line: token.Line}
-	case IDENTIFIER, THIS:
+	case IDENTIFIER, THIS, SUPER:
 		currExpr = &IdentifierExpr{Name: token.Lexeme, Line: token.Line}
 	case LEFT_PAREN:
 		e, err := p.parseExpression()

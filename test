@@ -1,29 +1,33 @@
- fun makeFilter(min) {
-   fun filter(n) {
-     if (n < min) {
-       return false;
-     }
-     return true;
-   }
-   return filter;
- }
+class A {
+  method() {
+    super.method();
+    this.second = "second";
+    print "A method";
+    print x;
+  }
+}
 
- // This function applies a function to a list of numbers
- fun applyToNumbers(f, count) {
-   var n = 0;
-   while (n < count) {
-     if (f(n)) {
-       print n;
-     }
-     n = n + 1;
-   }
- }
+class B < A {
+  method() {
+    print "B method";
+  }
 
- var greaterThanX = makeFilter(32);
- var greaterThanY = makeFilter(74);
+  test() {
+    this.first = "first";
+    super.method();
+  }
+}
 
- print "Numbers >= 32:";
- applyToNumbers(greaterThanX, 32 + 6);
+var x = "global dec after";
 
- print "Numbers >= 74:";
- applyToNumbers(greaterThanY, 74 + 6);
+class C < B {
+    test2() {
+        super.method();
+    }
+}
+
+var c = C();
+c.test();
+//c.test2();
+print c.first;
+print c.second;
