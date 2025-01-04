@@ -558,6 +558,10 @@ type ClassInstance struct {
 	Properties         map[string]interface{}
 }
 
+func (ci *ClassInstance) String() string {
+	return fmt.Sprintf("%s instance", ci.Name)
+}
+
 func (ci *ClassInstance) findMethod(name string) (interface{}, bool) {
 	m, ok := ci.Methods[name]
 	if ok {
@@ -569,19 +573,6 @@ func (ci *ClassInstance) findMethod(name string) (interface{}, bool) {
 	}
 
 	return nil, false
-}
-
-func (ci *ClassInstance) String() string {
-	return fmt.Sprintf("%s instance", ci.Name)
-}
-
-type ClassCaller struct {
-	Name       string
-	SuperClass *ClassCaller
-	Methods    []*FunDeclStmt
-
-	arity   int
-	closure *Environment
 }
 
 func (ci *ClassInstance) initSuperClass(env *Environment, superClass *ClassCaller) (*ClassInstance, error) {
@@ -616,6 +607,15 @@ func (ci *ClassInstance) initSuperClass(env *Environment, superClass *ClassCalle
 	}
 
 	return &sci, nil
+}
+
+type ClassCaller struct {
+	Name       string
+	SuperClass *ClassCaller
+	Methods    []*FunDeclStmt
+
+	arity   int
+	closure *Environment
 }
 
 func (cc *ClassCaller) Call(args ...interface{}) (interface{}, error) {
